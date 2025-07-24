@@ -56,5 +56,8 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "Hand-In-Fruit.sln"
+    "dotnet.defaultSolution": "Hand-In-Fruit.sln",
+    "cSpell.words": [
+        "Mathf"
+    ]
 }
