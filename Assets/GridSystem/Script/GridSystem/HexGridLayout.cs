@@ -25,7 +25,7 @@ public class HexGridLayout : MonoBehaviour
         }
     }
 
-    private void LayoutGrid()
+    public void LayoutGrid()
     {
         for (int y = 0; y < gridSize.y; y++)
         {
@@ -46,28 +46,32 @@ public class HexGridLayout : MonoBehaviour
             }
         }
     }
+
     private Vector3 GetPositionForHexFromCoordinates(Vector2Int coordinate)
     {
         int column = coordinate.x;
         int row = coordinate.y;
         float size = outerSize;
-        float xPosition, yPosition;
+        float xPosition,
+            yPosition;
         bool shouldOffset;
-        float width, height;
-        float horizontalDistance, verticalDistance;
+        float width,
+            height;
+        float horizontalDistance,
+            verticalDistance;
         float offset;
-        
+
         if (!isFlatTopped)
         {
             shouldOffset = (row % 2) == 0;
             width = Mathf.Sqrt(3) * size;
             height = 2f * size;
-            
+
             horizontalDistance = width;
-            verticalDistance = height * (3f/4f);
-            
-            offset = (shouldOffset) ? width/2 : 0;
-            
+            verticalDistance = height * (3f / 4f);
+
+            offset = (shouldOffset) ? width / 2 : 0;
+
             xPosition = (column * horizontalDistance) + offset;
             yPosition = (row * verticalDistance);
         }
@@ -76,15 +80,15 @@ public class HexGridLayout : MonoBehaviour
             shouldOffset = (column % 2) == 0;
             width = 2f * size;
             height = Mathf.Sqrt(3f) * size;
-            
+
             horizontalDistance = width * (3f / 4f);
             verticalDistance = height;
-            
-            offset = (shouldOffset) ? height/2 : 0;
+
+            offset = (shouldOffset) ? height / 2 : 0;
             xPosition = (column * horizontalDistance);
             yPosition = (row * verticalDistance) - offset;
         }
-        
+
         return new Vector3(xPosition, 0, -yPosition);
     }
 }

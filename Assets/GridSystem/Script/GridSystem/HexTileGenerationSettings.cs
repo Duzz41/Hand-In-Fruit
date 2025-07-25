@@ -7,13 +7,13 @@ public class HexTileGenerationSettings : ScriptableObject
     {
         Standard,
         Water,
-        Cliff
+        Cliff,
     }
-    
+
     public GameObject Standard;
     public GameObject Water;
     public GameObject Cliff;
-    
+
     public GameObject GetTile(TileType tileType)
     {
         switch (tileType)

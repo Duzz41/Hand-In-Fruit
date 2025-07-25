@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 186a0c15145801a459c523ecf79d71de, type: 3}
+  m_Name: New Hex Tile Generation Settings
+  m_EditorClassIdentifier: 
+  Standard: {fileID: 8507825868605406521, guid: c5f0ddd1d493a2b4d8aabdf029a55cc0, type: 3}
+  Water: {fileID: 3325823927923275556, guid: 082e9ea2bf7b62546b762ac06379aa60, type: 3}
+  Cliff: {fileID: 5279952595844144004, guid: f9e9cfb75fd9b5d4bac1ba92a97558e6, type: 3}
