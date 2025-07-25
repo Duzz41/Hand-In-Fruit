@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class MobilePlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
     [SerializeField] private float moveSpeed = 10f;
@@ -83,7 +83,7 @@ public class MobilePlayerController : MonoBehaviour
             keyboardInput.y = Input.GetAxis("Vertical");
         }
 
-        // Get virtual joystick input
+        // Get virtual joystick input (now properly working)
         if (useVirtualJoystick && virtualJoystick != null)
         {
             joystickInputFromUI = virtualJoystick.GetInputVector();
@@ -148,15 +148,17 @@ public class MobilePlayerController : MonoBehaviour
         }
     }
 
-    // Keep your existing public methods
+    // Public methods for external joystick input
     public void SetJoystickInput(Vector2 input)
     {
-        joystickInput = Vector2.ClampMagnitude(input, 1f);
+        // This method is called directly by the virtual joystick
+        // No need to modify joystickInput here as it's handled in HandleInput()
     }
 
     public void SetJoystickInput(float x, float y)
     {
-        joystickInput = Vector2.ClampMagnitude(new Vector2(x, y), 1f);
+        // This method is called directly by the virtual joystick
+        // No need to modify joystickInput here as it's handled in HandleInput()
     }
 
     public float GetCurrentSpeed()
@@ -174,7 +176,7 @@ public class MobilePlayerController : MonoBehaviour
         return currentSpeed > 0.1f;
     }
 
-    // For Debug reasons
+    // Debug visualization
     void OnDrawGizmos()
     {
         if (Application.isPlaying && rb != null)
