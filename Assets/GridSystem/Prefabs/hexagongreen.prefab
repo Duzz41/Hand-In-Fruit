@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 2441710756434107527}
   - component: {fileID: -4174006699475007890}
   - component: {fileID: 7327835980376649327}
+  - component: {fileID: 6441720759106617648}
   m_Layer: 0
   m_Name: hexagongreen
   m_TagString: Untagged
@@ -192,3 +193,25 @@ MeshCollider:
   m_Convex: 1
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: fe3d5fcd4cd7d274dbe5cec4fbf8462d, type: 2}
+--- !u!64 &6441720759106617648
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8507825868605406521}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 2534964839176971238, guid: 15050335ba5ca4344b8aa44d515da45a, type: 3}
