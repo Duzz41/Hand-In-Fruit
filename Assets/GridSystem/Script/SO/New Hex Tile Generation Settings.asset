@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 186a0c15145801a459c523ecf79d71de, type: 3}
   m_Name: New Hex Tile Generation Settings
   m_EditorClassIdentifier: 
-  Standard: {fileID: 8507825868605406521, guid: c5f0ddd1d493a2b4d8aabdf029a55cc0, type: 3}
-  Water: {fileID: 3325823927923275556, guid: 082e9ea2bf7b62546b762ac06379aa60, type: 3}
-  Cliff: {fileID: 5279952595844144004, guid: f9e9cfb75fd9b5d4bac1ba92a97558e6, type: 3}
+  defaultVisibleMaterial: {fileID: -3033667219593020291, guid: eb2cf7c49babeb14b9ca8b06a2e48512, type: 3}
+  defaultHiddenMaterial: {fileID: 2100000, guid: 343fcb037d971d841a6f4091e4d5c769, type: 2}
+  stonePrefab: {fileID: 8507825868605406521, guid: c5f0ddd1d493a2b4d8aabdf029a55cc0, type: 3}
+  ironPrefab: {fileID: 3325823927923275556, guid: 082e9ea2bf7b62546b762ac06379aa60, type: 3}
+  cliffPrefab: {fileID: 5279952595844144004, guid: f9e9cfb75fd9b5d4bac1ba92a97558e6, type: 3}

@@ -1,29 +1,32 @@
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "TileGen/GenerationSettings")]
+[CreateAssetMenu(fileName = "New HexTileSettings", menuName = "Hex/Tile Settings")]
 public class HexTileGenerationSettings : ScriptableObject
 {
+    public Material defaultVisibleMaterial;
+    public Material defaultHiddenMaterial;
+
     public enum TileType
     {
-        Standard,
-        Water,
+        Stone,
+        Iron,
         Cliff,
     }
 
-    public GameObject Standard;
-    public GameObject Water;
-    public GameObject Cliff;
+    public GameObject stonePrefab;
+    public GameObject ironPrefab;
+    public GameObject cliffPrefab;
 
-    public GameObject GetTile(TileType tileType)
+    public GameObject GetTile(TileType type)
     {
-        switch (tileType)
+        switch (type)
         {
-            case TileType.Standard:
-                return Standard;
-            case TileType.Water:
-                return Water;
+            case TileType.Stone:
+                return stonePrefab;
+            case TileType.Iron:
+                return ironPrefab;
             case TileType.Cliff:
-                return Cliff;
+                return cliffPrefab;
         }
         return null;
     }
