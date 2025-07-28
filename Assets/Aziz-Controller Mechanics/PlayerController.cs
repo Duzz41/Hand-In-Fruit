@@ -10,13 +10,13 @@ public class PlayerController : MonoBehaviour
 
     [Header("Physics Settings")]
     [SerializeField] private float maxVelocity = 15f;
-    [SerializeField] private float dragCoefficient = 0.8f; // Düzeltildi: 2f'den 0.8f'ye
+    [SerializeField] private float dragCoefficient = 0.8f;
 
     [Header("Collision Recovery")]
     [SerializeField] private bool autoRecoverFromCollision = true;
-    [SerializeField] private float recoveryForceMultiplier = 1.2f; // Düzeltildi: 1.5f'den 1.2f'ye
-    [SerializeField] private float collisionRecoveryTime = 1f; // Düzeltildi: 2f'den 1f'ye
-    [SerializeField] private float minCollisionForceForRecovery = 3f; // Yeni: Minimum çarp??ma kuvveti
+    [SerializeField] private float recoveryForceMultiplier = 1.2f;
+    [SerializeField] private float collisionRecoveryTime = 1f;
+    [SerializeField] private float minCollisionForceForRecovery = 3f;
 
     [Header("Input Settings")]
     [SerializeField] private bool useBuiltInInput = true;
@@ -30,6 +30,7 @@ public class PlayerController : MonoBehaviour
     // Components
     private Rigidbody rb;
     private SimpleVirtualJoystick virtualJoystick;
+    private FuelSystem fuelSystem; // New: Fuel system reference
 
     // Input variables
     private Vector2 joystickInput;
@@ -46,10 +47,13 @@ public class PlayerController : MonoBehaviour
     private bool isRecoveringFromCollision;
     private float collisionRecoveryTimer;
     private Vector3 preCollisionVelocity;
-    private float momentumPreservation = 0.7f; // Yeni: Momentum koruma faktörü
+    private float momentumPreservation = 0.7f;
 
     // Debug variables
     private float lastDebugTime;
+
+    // New: Fuel system integration
+    private bool canMove = true;
 
     void Start()
     {
@@ -62,6 +66,9 @@ public class PlayerController : MonoBehaviour
         {
             virtualJoystick = FindFirstObjectByType<SimpleVirtualJoystick>();
         }
+
+        // Initialize fuel system integration
+        InitializeFuelSystem();
     }
 
     void InitializeComponents()
@@ -72,13 +79,35 @@ public class PlayerController : MonoBehaviour
             rb = gameObject.AddComponent<Rigidbody>();
             Debug.LogWarning("Rigidbody was missing and has been added automatically.");
         }
+
+        // Get fuel system component
+        fuelSystem = GetComponent<FuelSystem>();
+        if (fuelSystem == null)
+        {
+            Debug.LogWarning("[PlayerController] FuelSystem component not found. Movement will not be restricted by fuel.");
+        }
+    }
+
+    void InitializeFuelSystem()
+    {
+        if (fuelSystem != null)
+        {
+            // Subscribe to fuel system events
+            fuelSystem.OnFuelEmpty += OnFuelEmpty;
+            fuelSystem.OnFuelRefilled += OnFuelRefilled;
+
+            if (debugVelocity)
+            {
+                Debug.Log("[PlayerController] Fuel system integration initialized.");
+            }
+        }
     }
 
     void SetupPhysics()
     {
         rb.mass = 2f;
-        rb.linearDamping = dragCoefficient; // Art?k daha dü?ük de?er
-        rb.angularDamping = 3f; // Düzeltildi: 5f'den 3f'ye
+        rb.linearDamping = dragCoefficient;
+        rb.angularDamping = 3f;
         rb.constraints = RigidbodyConstraints.FreezePositionY |
                         RigidbodyConstraints.FreezeRotationX |
                         RigidbodyConstraints.FreezeRotationZ;
@@ -108,8 +137,18 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        ApplyMovement();
-        ApplyRotation();
+        // Check if player can move (not out of fuel)
+        if (canMove)
+        {
+            ApplyMovement();
+            ApplyRotation();
+        }
+        else
+        {
+            // If out of fuel, gradually stop the player
+            ApplyFuelEmptyDeceleration();
+        }
+
         LimitVelocity();
     }
 
@@ -149,7 +188,8 @@ public class PlayerController : MonoBehaviour
         moveDirection = new Vector3(joystickInput.x, 0f, joystickInput.y);
         float targetSpeed = moveDirection.magnitude * moveSpeed;
 
-        if (moveDirection.magnitude > 0.1f)
+        // Only calculate movement if player can move
+        if (canMove && moveDirection.magnitude > 0.1f)
         {
             float currentAcceleration = isRecoveringFromCollision ?
                 acceleration * recoveryForceMultiplier : acceleration;
@@ -157,7 +197,7 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            // Düzeltildi: Recovery s?ras?nda daha yava? yava?lama
+            // Decelerate when not moving or out of fuel
             float currentDeceleration = isRecoveringFromCollision ? deceleration * 0.5f : deceleration;
             currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, currentDeceleration * Time.deltaTime);
         }
@@ -169,7 +209,6 @@ public class PlayerController : MonoBehaviour
     {
         if (isRecoveringFromCollision)
         {
-            // Düzeltildi: Recovery s?ras?nda momentum korumal? yumu?ak geçi?
             Vector3 currentHorizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             Vector3 preservedMomentum = preCollisionVelocity * momentumPreservation;
             Vector3 blendedVelocity = Vector3.Lerp(currentHorizontalVelocity, targetVelocity + preservedMomentum * 0.3f, Time.fixedDeltaTime * 2f);
@@ -178,7 +217,6 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            // Normal hareket logic'i
             Vector3 velocityDifference = targetVelocity - new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             Vector3 forceToApply = velocityDifference * rb.mass * acceleration;
             forceToApply = Vector3.ClampMagnitude(forceToApply, rb.mass * moveSpeed * 2f);
@@ -186,9 +224,20 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    void ApplyFuelEmptyDeceleration()
+    {
+        // Gradually slow down the player when out of fuel
+        Vector3 currentHorizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        Vector3 deceleratedVelocity = Vector3.Lerp(currentHorizontalVelocity, Vector3.zero, Time.fixedDeltaTime * deceleration);
+        rb.linearVelocity = new Vector3(deceleratedVelocity.x, rb.linearVelocity.y, deceleratedVelocity.z);
+
+        // Also reduce current speed
+        currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, deceleration * Time.deltaTime * 2f);
+    }
+
     void ApplyRotation()
     {
-        if (moveDirection.magnitude > 0.1f && currentSpeed > 0.5f)
+        if (moveDirection.magnitude > 0.1f && currentSpeed > 0.5f && canMove)
         {
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
             float rotationStep = rotationSpeed * Time.fixedDeltaTime;
@@ -201,7 +250,6 @@ public class PlayerController : MonoBehaviour
         Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         if (horizontalVelocity.magnitude > maxVelocity)
         {
-            // Düzeltildi: Daha yumu?ak h?z s?n?rlama
             Vector3 limitedVelocity = horizontalVelocity.normalized * maxVelocity;
             Vector3 currentVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             Vector3 smoothLimited = Vector3.Lerp(currentVelocity, limitedVelocity, Time.fixedDeltaTime * 5f);
@@ -233,7 +281,6 @@ public class PlayerController : MonoBehaviour
 
     void MonitorPhysicsValues()
     {
-        // Reset physics values if they've been changed unexpectedly
         if (Mathf.Abs(rb.mass - originalMass) > 0.1f)
         {
             if (debugCollisions)
@@ -262,21 +309,24 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // Collision detection
+    // Collision detection - Updated to work with fuel system
     void OnCollisionEnter(Collision collision)
     {
         if (debugCollisions)
         {
-            
-             Debug.Log($"[PlayerController] Collision with {collision.gameObject.name}. " +
+            Debug.Log($"[PlayerController] Collision with {collision.gameObject.name}. " +
                      $"Impact force: {collision.impulse.magnitude:F2}");
-            
         }
 
-        // Düzeltildi: Sadece güçlü çarp??malarda recovery ba?lat
+        // Notify fuel system about wall collision
+        if (fuelSystem != null)
+        {
+            fuelSystem.OnWallCollision(collision);
+        }
+
         if (autoRecoverFromCollision && collision.relativeVelocity.magnitude > minCollisionForceForRecovery)
         {
-            preCollisionVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z); // Sadece horizontal velocity
+            preCollisionVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             isRecoveringFromCollision = true;
             collisionRecoveryTimer = collisionRecoveryTime;
 
@@ -289,11 +339,35 @@ public class PlayerController : MonoBehaviour
 
     void OnCollisionStay(Collision collision)
     {
-        // Düzeltildi: Daha kontrollü push force
-        if (autoRecoverFromCollision && moveDirection.magnitude > 0.1f)
+        // Continue notifying fuel system while colliding
+        if (fuelSystem != null)
         {
-            Vector3 pushForce = moveDirection.normalized * rb.mass * moveSpeed * 0.3f; // 0.5f'den 0.3f'ye
+            fuelSystem.OnWallCollision(collision);
+        }
+
+        if (autoRecoverFromCollision && moveDirection.magnitude > 0.1f && canMove)
+        {
+            Vector3 pushForce = moveDirection.normalized * rb.mass * moveSpeed * 0.3f;
             rb.AddForce(pushForce, ForceMode.Force);
+        }
+    }
+
+    // Fuel system event handlers
+    void OnFuelEmpty()
+    {
+        canMove = false;
+        if (debugVelocity)
+        {
+            Debug.Log("[PlayerController] Movement disabled - out of fuel!");
+        }
+    }
+
+    void OnFuelRefilled()
+    {
+        canMove = true;
+        if (debugVelocity)
+        {
+            Debug.Log("[PlayerController] Movement enabled - fuel refilled!");
         }
     }
 
@@ -303,19 +377,22 @@ public class PlayerController : MonoBehaviour
         Vector3 horizontalVelocity = new Vector3(currentVelocity.x, 0f, currentVelocity.z);
 
         string recoveryStatus = isRecoveringFromCollision ? " [RECOVERING]" : "";
+        string fuelStatus = !canMove ? " [NO FUEL]" : "";
+        string fuelLevel = fuelSystem != null ? $" Fuel: {fuelSystem.GetCurrentFuel():F1}/{fuelSystem.GetMaxFuel()}" : "";
 
         Debug.Log($"[PlayerController] Current Velocity: {currentVelocity} | " +
                   $"Horizontal Speed: {horizontalVelocity.magnitude:F2} | " +
                   $"Target Speed: {currentSpeed:F2} | " +
-                  $"Moving: {IsMoving()}{recoveryStatus}");
+                  $"Moving: {IsMoving()}{recoveryStatus}{fuelStatus}{fuelLevel}");
     }
 
-    // Public methods
+    // Public methods - Updated
     public void SetJoystickInput(Vector2 input) { }
     public void SetJoystickInput(float x, float y) { }
     public float GetCurrentSpeed() => currentSpeed;
     public Vector2 GetJoystickInput() => joystickInput;
     public bool IsMoving() => currentSpeed > 0.1f;
+    public bool CanMove() => canMove; // New: Check if player can move
 
     // New public methods
     public void ForceResetPhysics()
@@ -328,7 +405,6 @@ public class PlayerController : MonoBehaviour
 
     public bool IsRecoveringFromCollision() => isRecoveringFromCollision;
 
-    // Yeni: Momentum'u manuel olarak s?f?rlama
     public void ResetMomentum()
     {
         rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
@@ -336,13 +412,34 @@ public class PlayerController : MonoBehaviour
         isRecoveringFromCollision = false;
     }
 
-    // Debug visualization
+    // New: Enable/disable movement (used by fuel system)
+    public void SetMovementEnabled(bool enabled)
+    {
+        canMove = enabled;
+        if (!enabled)
+        {
+            // Stop immediately when movement is disabled
+            currentSpeed = 0f;
+        }
+    }
+
+    // Cleanup
+    void OnDestroy()
+    {
+        if (fuelSystem != null)
+        {
+            fuelSystem.OnFuelEmpty -= OnFuelEmpty;
+            fuelSystem.OnFuelRefilled -= OnFuelRefilled;
+        }
+    }
+
+    // Debug visualization - Updated
     void OnDrawGizmos()
     {
         if (Application.isPlaying && rb != null)
         {
             // Movement direction
-            Gizmos.color = Color.green;
+            Gizmos.color = canMove ? Color.green : Color.red;
             Gizmos.DrawLine(transform.position, transform.position + moveDirection * 3f);
 
             // Velocity direction
@@ -355,6 +452,13 @@ public class PlayerController : MonoBehaviour
             {
                 Gizmos.color = Color.red;
                 Gizmos.DrawWireSphere(transform.position + Vector3.up * 2f, 0.5f);
+            }
+
+            // No fuel indicator
+            if (!canMove)
+            {
+                Gizmos.color = Color.red;
+                Gizmos.DrawWireCube(transform.position + Vector3.up * 2.5f, Vector3.one * 0.5f);
             }
         }
     }
