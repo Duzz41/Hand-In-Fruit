@@ -13,6 +13,9 @@ public class HexTile : MonoBehaviour
     public Vector2Int offsetCoordinates;
 
     // Fog of War için yeni değişkenler
+    [Header("Debug & Editor Options")]
+    public bool editorForceVisible = false;
+
     private bool isRevealed = false; // Bir kere açıldı mı?
     private bool isCurrentlyVisible = false; // Şu anda görünür mü?
     private MeshRenderer tileRenderer;
@@ -38,20 +41,25 @@ public class HexTile : MonoBehaviour
 
         if (tileRenderer != null)
         {
-            // Original material'ı kaydet (eğer henüz kaydedilmemişse)
-            if (originalMaterial == null)
-            {
-                originalMaterial = tileRenderer.sharedMaterial;
-                Debug.Log(
-                    $"[InitializeTileRenderer] Original material saved: {originalMaterial?.name} for {name}"
-                );
-            }
+            // Her zaman yeni tile'ın sharedMaterial'ını al
+            originalMaterial = tileRenderer.sharedMaterial;
+            Debug.Log(
+                $"[InitializeTileRenderer] Original material updated: {originalMaterial?.name} for {name}"
+            );
 
-            // Başlangıçta gizli material ile göster
-            if (settings != null && settings.defaultHiddenMaterial != null)
+            // SADECE RUNTIME'DA başlangıçta gizli material ile göster
+            if (Application.isPlaying && settings != null && settings.defaultHiddenMaterial != null)
             {
                 Debug.Log($"Setting initial hidden material on {name}");
                 tileRenderer.material = settings.defaultHiddenMaterial;
+            }
+            else if (!Application.isPlaying)
+            {
+                // Editörde orijinal materiali koru - zaten doğru material yüklü olmalı
+                Debug.Log(
+                    $"In editor mode, keeping original material on {name}: {originalMaterial?.name}"
+                );
+                // Material zaten doğru, değiştirmeye gerek yok
             }
             else
             {
@@ -104,7 +112,8 @@ public class HexTile : MonoBehaviour
     // Tile'ı player'dan uzaklaştığında gizle (ama sadece daha önce açılmışsa)
     public void HideTile()
     {
-        if (isRevealed && isCurrentlyVisible)
+        // Editörde hide işlemini sadece runtime'da yap
+        if (Application.isPlaying && isRevealed && isCurrentlyVisible)
         {
             isCurrentlyVisible = false;
             ShowWithHiddenMaterial();
@@ -209,9 +218,27 @@ public class HexTile : MonoBehaviour
             {
                 GameObject.DestroyImmediate(tile);
             }
+
+            // Tile'ı yeniden oluştur
             AddTile();
+
             isDirty = false;
         }
+
+#if UNITY_EDITOR
+        // Editör kontrolleri sadece runtime'da değil, editör modunda da çalışsın
+        // ancak material değişikliklerini sadece debug amaçlı yap
+        if (!Application.isPlaying)
+        {
+            // Editörde material değişikliği yapmayalım, sadece debug bilgisi verelim
+            if (editorForceVisible && tileRenderer != null && originalMaterial != null)
+            {
+                // Editörde bile orijinal materialde kalmalı
+                tileRenderer.material = originalMaterial;
+            }
+            // Editörde gizleme işlemi yapma, orijinal materyali koru
+        }
+#endif
     }
 
     public static Vector3Int OffsetToCube(Vector2Int offset)
