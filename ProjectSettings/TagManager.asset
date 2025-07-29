@@ -4,7 +4,7 @@
 TagManager:
   serializedVersion: 3
   tags:
-  - Projectile
+  - Debris
   layers:
   - Default
   - TransparentFX
@@ -14,7 +14,7 @@ TagManager:
   - UI
   - Mountain
   - Unbreakable
-  - Tile
+  - Debris
   - 
   - 
   - 
