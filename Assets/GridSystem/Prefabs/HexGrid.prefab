@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56176f157f4395c499f90a5a267b5875, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridSize: {x: 7, y: 7}
+  gridSize: {x: 7, y: 8}
   radius: 1
   isFlatTopped: 0
   settings: {fileID: 11400000, guid: c70f58b183fac31449ed29280c1eb759, type: 2}

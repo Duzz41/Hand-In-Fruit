@@ -4,161 +4,188 @@ using UnityEngine;
 [ExecuteInEditMode]
 public class HexTile : MonoBehaviour
 {
+    [Header("Tile Settings")]
     public HexTileGenerationSettings settings;
     public HexTileGenerationSettings.TileType tileType;
-
-    public GameObject tile;
-
-    private Material originalMaterial; // prefabın kendi materyali
     public Vector2Int offsetCoordinates;
 
-    // Fog of War için yeni değişkenler
+    [Header("Fog of War")]
+    [SerializeField]
+    private bool isRevealed = false;
+
+    [SerializeField]
+    private bool isCurrentlyVisible = false;
+
     [Header("Debug & Editor Options")]
     public bool editorForceVisible = false;
 
-    private bool isRevealed = false; // Bir kere açıldı mı?
-    private bool isCurrentlyVisible = false; // Şu anda görünür mü?
-    private MeshRenderer tileRenderer;
+    // Private fields
+    public GameObject tile;
+    private List<MeshRenderer> pieceRenderers = new List<MeshRenderer>();
+    private List<Material> originalMaterials = new List<Material>();
+    private bool isDirty = false;
 
     private void Start()
     {
-        Debug.Log($"HexTile Start called on {name}");
+        // Runtime'da fog durumunu uygula
+        if (Application.isPlaying && tile != null)
+        {
+            CachePieceRenderers();
+            ApplyFogState();
+        }
+    }
 
-        // Eğer tile zaten varsa (runtime'da oluşturulmuşsa)
+    private void Update()
+    {
+        if (isDirty)
+        {
+            RefreshTile();
+            isDirty = false;
+        }
+    }
+
+    private void OnValidate()
+    {
         if (tile != null)
         {
-            InitializeTileRenderer();
-        }
-        else
-        {
-            Debug.Log($"No tile object found on {name} during Start - will be created later");
+            isDirty = true;
         }
     }
 
-    private void InitializeTileRenderer()
+    public void AddTile()
     {
-        tileRenderer = tile.GetComponentInChildren<MeshRenderer>();
+        if (settings == null)
+            return;
 
-        if (tileRenderer != null)
-        {
-            // Her zaman yeni tile'ın sharedMaterial'ını al
-            originalMaterial = tileRenderer.sharedMaterial;
-            Debug.Log(
-                $"[InitializeTileRenderer] Original material updated: {originalMaterial?.name} for {name}"
-            );
+        tile = GameObject.Instantiate(settings.GetTile(tileType));
+        tile.transform.SetParent(this.transform);
+        tile.transform.localPosition = Vector3.zero;
 
-            // SADECE RUNTIME'DA başlangıçta gizli material ile göster
-            if (Application.isPlaying && settings != null && settings.defaultHiddenMaterial != null)
-            {
-                Debug.Log($"Setting initial hidden material on {name}");
-                tileRenderer.material = settings.defaultHiddenMaterial;
-            }
-            else if (!Application.isPlaying)
-            {
-                // Editörde orijinal materiali koru - zaten doğru material yüklü olmalı
-                Debug.Log(
-                    $"In editor mode, keeping original material on {name}: {originalMaterial?.name}"
-                );
-                // Material zaten doğru, değiştirmeye gerek yok
-            }
-            else
-            {
-                Debug.LogWarning(
-                    $"Cannot set initial hidden material on {name}. settings: {settings != null}, hiddenMaterial: {settings?.defaultHiddenMaterial != null}"
-                );
-            }
-        }
-        else
+        // Piece'lerin layer'ını Debris yap
+        SetPiecesLayer("Debris");
+
+        // Collider ekle
+        AddMainColliderIfNeeded();
+
+        // Runtime'daysa renderer'ları cache'le
+        if (Application.isPlaying)
         {
-            Debug.LogError($"No MeshRenderer found in children of tile {name}");
+            CachePieceRenderers();
+            ApplyFogState();
         }
     }
 
-    // Fog of War için yeni method
+    private void RefreshTile()
+    {
+        if (tile != null)
+        {
+            if (Application.isPlaying)
+                GameObject.Destroy(tile);
+            else
+                GameObject.DestroyImmediate(tile);
+        }
+
+        pieceRenderers.Clear();
+        originalMaterials.Clear();
+        AddTile();
+    }
+
+    private void CachePieceRenderers()
+    {
+        pieceRenderers.Clear();
+        originalMaterials.Clear();
+
+        if (tile == null)
+            return;
+
+        // Önce direkt child piece'leri kontrol et (parçalanabilir objeler için)
+        for (int i = 0; i < tile.transform.childCount; i++)
+        {
+            Transform child = tile.transform.GetChild(i);
+            MeshRenderer renderer = child.GetComponent<MeshRenderer>();
+
+            if (renderer != null)
+            {
+                pieceRenderers.Add(renderer);
+                originalMaterials.Add(renderer.sharedMaterial);
+            }
+        }
+
+        // Eğer child piece bulunamazsa, tile'ın kendisinde MeshRenderer var mı bak
+        if (pieceRenderers.Count == 0)
+        {
+            MeshRenderer tileRenderer = tile.GetComponent<MeshRenderer>();
+            if (tileRenderer != null)
+            {
+                pieceRenderers.Add(tileRenderer);
+                originalMaterials.Add(tileRenderer.sharedMaterial);
+            }
+        }
+    }
+
+    private void SetPiecesLayer(string layerName)
+    {
+        if (tile == null)
+            return;
+
+        int layer = LayerMask.NameToLayer(layerName);
+        if (layer == -1)
+            return;
+
+        // Tüm piece'lerin layer'ını ayarla
+        for (int i = 0; i < tile.transform.childCount; i++)
+        {
+            tile.transform.GetChild(i).gameObject.layer = layer;
+        }
+    }
+
+    private void AddMainColliderIfNeeded()
+    {
+        if (tile == null)
+            return;
+
+        if (tile.GetComponent<DestructibleObject>() == null)
+        {
+            if (gameObject.GetComponent<MeshCollider>() == null)
+            {
+                MeshRenderer firstRenderer = tile.GetComponentInChildren<MeshRenderer>();
+                if (firstRenderer != null)
+                {
+                    MeshFilter filter = firstRenderer.GetComponent<MeshFilter>();
+                    if (filter != null)
+                    {
+                        MeshCollider collider = gameObject.AddComponent<MeshCollider>();
+                        collider.sharedMesh = filter.sharedMesh;
+                    }
+                }
+            }
+        }
+    }
+
+    // FOG OF WAR METHODS
     public void RevealTile()
     {
-        Debug.Log(
-            $"RevealTile called on {name}. isRevealed: {isRevealed}, isCurrentlyVisible: {isCurrentlyVisible}"
-        );
-
-        // Eğer tile henüz oluşturulmamışsa, önce oluştur
-        if (tile == null)
-        {
-            Debug.Log($"Tile is null, calling AddTile for {name}");
-            AddTile();
-        }
-
-        // Tile renderer yoksa tekrar initialize et
-        if (tileRenderer == null || originalMaterial == null)
-        {
-            Debug.Log($"TileRenderer or originalMaterial is null, reinitializing for {name}");
-            InitializeTileRenderer();
-        }
-
         if (!isRevealed)
         {
             isRevealed = true;
-            Debug.Log($"Tile revealed for first time: {name}");
         }
 
         if (!isCurrentlyVisible)
         {
             isCurrentlyVisible = true;
-            Debug.Log($"Setting tile {name} to visible with original material");
-            ShowWithOriginalMaterial();
+            ShowPieces();
         }
     }
 
-    // Tile'ı player'dan uzaklaştığında gizle (ama sadece daha önce açılmışsa)
     public void HideTile()
     {
-        // Editörde hide işlemini sadece runtime'da yap
         if (Application.isPlaying && isRevealed && isCurrentlyVisible)
         {
             isCurrentlyVisible = false;
-            ShowWithHiddenMaterial();
+            HidePieces();
         }
     }
 
-    private void ShowWithOriginalMaterial()
-    {
-        Debug.Log(
-            $"ShowWithOriginalMaterial called. tile: {tile != null}, tileRenderer: {tileRenderer != null}, originalMaterial: {originalMaterial != null}"
-        );
-
-        if (tile != null && tileRenderer != null && originalMaterial != null)
-        {
-            Debug.Log(
-                $"Changing material from {tileRenderer.material.name} to {originalMaterial.name}"
-            );
-            tileRenderer.material = originalMaterial;
-        }
-        else
-        {
-            Debug.LogError($"Cannot show original material. Missing components on {name}");
-        }
-    }
-
-    private void ShowWithHiddenMaterial()
-    {
-        Debug.Log(
-            $"ShowWithHiddenMaterial called. tile: {tile != null}, tileRenderer: {tileRenderer != null}, settings: {settings != null}"
-        );
-
-        if (tile != null && tileRenderer != null && settings != null)
-        {
-            Debug.Log(
-                $"Changing material from {tileRenderer.material.name} to {settings.defaultHiddenMaterial.name}"
-            );
-            tileRenderer.material = settings.defaultHiddenMaterial;
-        }
-        else
-        {
-            Debug.LogError($"Cannot show hidden material. Missing components on {name}");
-        }
-    }
-
-    // Eski SetVisible method'unu kaldırıyoruz ve yeni logic ekliyoruz
     public void SetVisible(bool visible)
     {
         if (visible)
@@ -171,74 +198,61 @@ public class HexTile : MonoBehaviour
         }
     }
 
-    private bool isDirty = false;
+    private void ShowPieces()
+    {
+        if (pieceRenderers.Count == 0)
+            return;
+
+        for (int i = 0; i < pieceRenderers.Count; i++)
+        {
+            if (pieceRenderers[i] != null && i < originalMaterials.Count)
+            {
+                pieceRenderers[i].material = originalMaterials[i];
+                pieceRenderers[i].enabled = true;
+            }
+        }
+    }
+
+    private void HidePieces()
+    {
+        if (pieceRenderers.Count == 0)
+            return;
+
+        for (int i = 0; i < pieceRenderers.Count; i++)
+        {
+            if (pieceRenderers[i] != null)
+            {
+                if (settings != null && settings.defaultHiddenMaterial != null)
+                {
+                    pieceRenderers[i].material = settings.defaultHiddenMaterial;
+                }
+                else
+                {
+                    pieceRenderers[i].enabled = false;
+                }
+            }
+        }
+    }
+
+    private void ApplyFogState()
+    {
+        if (isCurrentlyVisible)
+        {
+            ShowPieces();
+        }
+        else
+        {
+            HidePieces();
+        }
+    }
+
+    // PUBLIC PROPERTIES
+    public bool IsRevealed => isRevealed;
+    public bool IsCurrentlyVisible => isCurrentlyVisible;
 
     public void RollTileType()
     {
         tileType = (HexTileGenerationSettings.TileType)Random.Range(0, 3);
-    }
-
-    public void AddTile()
-    {
-        tile = GameObject.Instantiate(settings.GetTile(tileType));
-        tile.transform.SetParent(this.transform);
-        tile.transform.localPosition = Vector3.zero;
-
-        // Tile renderer'ı initialize et
-        InitializeTileRenderer();
-
-        // Collider ekle
-        if (gameObject.GetComponent<MeshCollider>() == null)
-        {
-            MeshFilter filter = GetComponentInChildren<MeshFilter>();
-            if (filter != null)
-            {
-                MeshCollider collider = gameObject.AddComponent<MeshCollider>();
-                collider.sharedMesh = filter.sharedMesh;
-            }
-        }
-    }
-
-    private void OnValidate()
-    {
-        if (tile == null)
-            return;
-        isDirty = true;
-    }
-
-    private void Update()
-    {
-        if (isDirty)
-        {
-            if (Application.isPlaying)
-            {
-                GameObject.Destroy(tile);
-            }
-            else
-            {
-                GameObject.DestroyImmediate(tile);
-            }
-
-            // Tile'ı yeniden oluştur
-            AddTile();
-
-            isDirty = false;
-        }
-
-#if UNITY_EDITOR
-        // Editör kontrolleri sadece runtime'da değil, editör modunda da çalışsın
-        // ancak material değişikliklerini sadece debug amaçlı yap
-        if (!Application.isPlaying)
-        {
-            // Editörde material değişikliği yapmayalım, sadece debug bilgisi verelim
-            if (editorForceVisible && tileRenderer != null && originalMaterial != null)
-            {
-                // Editörde bile orijinal materialde kalmalı
-                tileRenderer.material = originalMaterial;
-            }
-            // Editörde gizleme işlemi yapma, orijinal materyali koru
-        }
-#endif
     }
 
     public static Vector3Int OffsetToCube(Vector2Int offset)

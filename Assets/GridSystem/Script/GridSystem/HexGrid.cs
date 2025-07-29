@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEditor.Playables;
 using UnityEngine;
 
 public class HexGrid : MonoBehaviour
@@ -7,10 +6,7 @@ public class HexGrid : MonoBehaviour
     [Header("Grid Settings")]
     public Vector2Int gridSize;
     public float radius = 1f;
-
-    //public GameObject prefab;
     public bool isFlatTopped;
-
     public HexTileGenerationSettings settings;
 
     public void Clear()
@@ -25,7 +21,10 @@ public class HexGrid : MonoBehaviour
 
         foreach (GameObject child in children)
         {
-            DestroyImmediate(child, true);
+            if (Application.isPlaying)
+                Destroy(child);
+            else
+                DestroyImmediate(child, true);
         }
     }
 
@@ -46,7 +45,7 @@ public class HexGrid : MonoBehaviour
                 hexTile.offsetCoordinates = new Vector2Int(x, y);
 
                 hexTile.RollTileType();
-                hexTile.AddTile();
+                hexTile.AddTile(); // ESKİ HALİNE GERİ DÖNDÜ
             }
         }
     }
@@ -85,8 +84,65 @@ public class HexGrid : MonoBehaviour
             if (hexTile != null)
             {
                 hexTile.RollTileType();
-                hexTile.AddTile();
+                hexTile.AddTile(); // ESKİ HALİNE GERİ DÖNDÜ
             }
         }
+    }
+
+    // FOG OF WAR HELPER METHODS
+    public HexTile GetTile(int x, int y)
+    {
+        string tileName = $"Hex C{x},R{y}";
+        Transform tileTransform = transform.Find(tileName);
+        if (tileTransform != null)
+        {
+            return tileTransform.GetComponent<HexTile>();
+        }
+        return null;
+    }
+
+    public void RevealTile(int x, int y)
+    {
+        HexTile tile = GetTile(x, y);
+        if (tile != null)
+        {
+            tile.RevealTile();
+        }
+    }
+
+    public void HideTile(int x, int y)
+    {
+        HexTile tile = GetTile(x, y);
+        if (tile != null)
+        {
+            tile.HideTile();
+        }
+    }
+
+    public void RevealTilesInRadius(Vector2Int center, int radius)
+    {
+        for (int y = 0; y < gridSize.y; y++)
+        {
+            for (int x = 0; x < gridSize.x; x++)
+            {
+                Vector2Int current = new Vector2Int(x, y);
+                if (GetHexDistance(center, current) <= radius)
+                {
+                    RevealTile(x, y);
+                }
+            }
+        }
+    }
+
+    public int GetHexDistance(Vector2Int a, Vector2Int b)
+    {
+        Vector3Int cubeA = HexTile.OffsetToCube(a);
+        Vector3Int cubeB = HexTile.OffsetToCube(b);
+
+        return (
+                Mathf.Abs(cubeA.x - cubeB.x)
+                + Mathf.Abs(cubeA.y - cubeB.y)
+                + Mathf.Abs(cubeA.z - cubeB.z)
+            ) / 2;
     }
 }
