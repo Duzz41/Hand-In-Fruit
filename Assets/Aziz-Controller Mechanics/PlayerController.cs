@@ -185,9 +185,7 @@ public class PlayerController : MonoBehaviour
 
     void CalculateMovement()
     {
-        //moveDirection = new Vector3(joystickInput.x, 0f, joystickInput.y);
-        //float targetSpeed = moveDirection.magnitude * moveSpeed;
-        moveDirection = new Vector3(-joystickInput.y, 0f, joystickInput.x);
+        moveDirection = new Vector3(joystickInput.x, 0f, joystickInput.y);
         float targetSpeed = moveDirection.magnitude * moveSpeed;
 
         // Only calculate movement if player can move
@@ -237,24 +235,11 @@ public class PlayerController : MonoBehaviour
         currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, deceleration * Time.deltaTime * 2f);
     }
 
-    //void ApplyRotation()
-    //{
-    //    if (moveDirection.magnitude > 0.1f && currentSpeed > 0.5f && canMove)
-    //    {
-    //        Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-    //        float rotationStep = rotationSpeed * Time.fixedDeltaTime;
-    //        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationStep);
-    //    }
-    //}
-
     void ApplyRotation()
     {
         if (moveDirection.magnitude > 0.1f && currentSpeed > 0.5f && canMove)
         {
-            // The vector for LookRotation needs the horizontal axis to be non-inverted
-            // to ensure the player turns in the correct direction.
-            Vector3 lookDirection = new Vector3(moveDirection.x, 0f, moveDirection.z);
-            Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
+            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
             float rotationStep = rotationSpeed * Time.fixedDeltaTime;
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationStep);
         }
