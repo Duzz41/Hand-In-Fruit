@@ -209252,18 +209252,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerFollow-CinemachineCamera
       objectReference: {fileID: 0}
-    - target: {fileID: 7088427432524581436, guid: 89d6d0eb69afd7245a6748c312d7bcde, type: 3}
-      propertyPath: FollowOffset.x
-      value: 3.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 7088427432524581436, guid: 89d6d0eb69afd7245a6748c312d7bcde, type: 3}
-      propertyPath: FollowOffset.y
-      value: 12
-      objectReference: {fileID: 0}
-    - target: {fileID: 7088427432524581436, guid: 89d6d0eb69afd7245a6748c312d7bcde, type: 3}
-      propertyPath: FollowOffset.z
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 7275157773046882010, guid: 89d6d0eb69afd7245a6748c312d7bcde, type: 3}
       propertyPath: Target.TrackingTarget
       value: 
