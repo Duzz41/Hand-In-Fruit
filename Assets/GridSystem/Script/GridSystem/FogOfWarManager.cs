@@ -101,6 +101,13 @@ public class FogOfWarManager : MonoBehaviour
         currentlyVisibleTiles = newVisibleTiles;
     }
 
+    public void StartXRay()
+    {
+        if (xrayOnCooldown)
+            return;
+        StartCoroutine(PerformXRayWaveScan());
+    }
+
     private IEnumerator PerformXRayWaveScan()
     {
         xrayOnCooldown = true;
