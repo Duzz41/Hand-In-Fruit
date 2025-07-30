@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   defaultVisibleMaterial: {fileID: -3033667219593020291, guid: eb2cf7c49babeb14b9ca8b06a2e48512, type: 3}
   defaultHiddenMaterial: {fileID: 2100000, guid: 343fcb037d971d841a6f4091e4d5c769, type: 2}
-  stonePrefab: {fileID: 1510736381186532189, guid: 4d4dfe16b3cc57f49bd9db3f89cf1cbc, type: 3}
+  stonePrefab: {fileID: 3836985184289157735, guid: a1504a642b367e647a740ee7215b395e, type: 3}
   ironPrefab: {fileID: 3325823927923275556, guid: 082e9ea2bf7b62546b762ac06379aa60, type: 3}
   cliffPrefab: {fileID: 5279952595844144004, guid: f9e9cfb75fd9b5d4bac1ba92a97558e6, type: 3}
