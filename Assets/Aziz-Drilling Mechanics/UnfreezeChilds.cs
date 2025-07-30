@@ -63,19 +63,19 @@ public class UnfreezeChilds : MonoBehaviour
         }
     }
 
-    void OnTriggerEnter(Collider collider)
-    {
-        if (!this.isFrozen)
-        {
-            return;
-        }
+    //void OnTriggerEnter(Collider collider)
+    //{
+    //    if (!this.isFrozen)
+    //    {
+    //        return;
+    //    }
 
-        bool tagAllowed = triggerOptions.IsTagAllowed(collider.gameObject.tag);
-        if (!triggerOptions.filterCollisionsByTag || triggerOptions.IsTagAllowed(collider.gameObject.tag))
-        {
-            this.Fracture();
-        }
-    }
+    //    bool tagAllowed = triggerOptions.IsTagAllowed(collider.gameObject.tag);
+    //    if (!triggerOptions.filterCollisionsByTag || triggerOptions.IsTagAllowed(collider.gameObject.tag))
+    //    {
+    //        this.Fracture();
+    //    }
+    //}
 
     private void Fracture()
     {
@@ -111,12 +111,13 @@ public class UnfreezeChilds : MonoBehaviour
         // Mark as fractured
         this.isFrozen = false;
 
+        destructibleObjectScript.DoThisWhenBrokenIntoPieces();
+
         // Invoke completion callback
         //if (this.onFractureCompleted != null)
         //{
         //    this.onFractureCompleted.Invoke();
         //}
-        destructibleObjectScript.DoThisWhenBrokenIntoPieces();
     }
 
     // Public method to manually trigger fracture (useful for testing or other scripts)
