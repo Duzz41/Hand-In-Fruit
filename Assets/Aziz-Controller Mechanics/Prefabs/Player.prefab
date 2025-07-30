@@ -157,7 +157,7 @@ MonoBehaviour:
   maxFuel: 100
   currentFuel: 100
   fuelConsumptionRate: 5
-  wallCollisionFuelRate: 10
+  wallCollisionFuelRate: 6
   refuelRate: 40
   lowFuelThreshold: 20
   startAreaCenter: {fileID: 0}
