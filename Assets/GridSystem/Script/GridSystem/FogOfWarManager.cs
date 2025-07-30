@@ -52,6 +52,10 @@ public class FogOfWarManager : MonoBehaviour
 
         CleanupDestroyedTiles();
 
+        // XRay aktifken normal vision'ı durdur
+        if (isXrayActive)
+            return;
+
         HashSet<HexTile> newVisibleTiles = new HashSet<HexTile>();
         Collider[] nearby = Physics.OverlapSphere(player.position, revealRadius);
 
@@ -60,7 +64,8 @@ public class FogOfWarManager : MonoBehaviour
             if (col == null)
                 continue;
 
-            HexTile tile = col.GetComponent<HexTile>();
+            HexTile tile = col.GetComponentInParent<HexTile>();
+
             if (tile != null && !IsDestroyed(tile))
             {
                 newVisibleTiles.Add(tile);
@@ -105,7 +110,7 @@ public class FogOfWarManager : MonoBehaviour
         Collider[] hits = Physics.OverlapSphere(player.position, xrayRadius);
         foreach (var hit in hits)
         {
-            HexTile tile = hit.GetComponent<HexTile>();
+            HexTile tile = hit.GetComponentInParent<HexTile>();
             if (tile != null)
             {
                 Vector3 toTile = (tile.transform.position - player.position).normalized;

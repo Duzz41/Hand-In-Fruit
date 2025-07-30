@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -98,28 +99,34 @@ public class HexTile : MonoBehaviour
         if (tile == null)
             return;
 
-        // Önce direkt child piece'leri kontrol et (parçalanabilir objeler için)
-        for (int i = 0; i < tile.transform.childCount; i++)
-        {
-            Transform child = tile.transform.GetChild(i);
-            MeshRenderer renderer = child.GetComponent<MeshRenderer>();
+        // DestructibleObject dahil altındaki tüm MeshRenderer'ları bul
+        MeshRenderer[] renderers = tile.GetComponentsInChildren<MeshRenderer>(true); // true: inactive objeler dahil
 
-            if (renderer != null)
-            {
-                pieceRenderers.Add(renderer);
-                originalMaterials.Add(renderer.sharedMaterial);
-            }
+        foreach (MeshRenderer renderer in renderers)
+        {
+            pieceRenderers.Add(renderer);
+            originalMaterials.Add(renderer.sharedMaterial);
         }
 
-        // Eğer child piece bulunamazsa, tile'ın kendisinde MeshRenderer var mı bak
-        if (pieceRenderers.Count == 0)
+        Debug.Log($"[{gameObject.name}] Cached {pieceRenderers.Count} renderers.");
+    }
+
+    // Yeni metod - recursive olarak tüm alt nesneleri tara
+    private void CacheDestructibleRenderers(Transform parent)
+    {
+        // Bu nesnenin kendi renderer'ını kontrol et
+        MeshRenderer renderer = parent.GetComponent<MeshRenderer>();
+        if (renderer != null)
         {
-            MeshRenderer tileRenderer = tile.GetComponent<MeshRenderer>();
-            if (tileRenderer != null)
-            {
-                pieceRenderers.Add(tileRenderer);
-                originalMaterials.Add(tileRenderer.sharedMaterial);
-            }
+            pieceRenderers.Add(renderer);
+            originalMaterials.Add(renderer.sharedMaterial);
+        }
+
+        // Tüm çocukları recursive olarak kontrol et
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            Transform child = parent.GetChild(i);
+            CacheDestructibleRenderers(child);
         }
     }
 
@@ -165,15 +172,14 @@ public class HexTile : MonoBehaviour
     // FOG OF WAR METHODS
     public void RevealTile()
     {
-        if (!isRevealed)
-        {
-            isRevealed = true;
-        }
+        Debug.Log($"[{gameObject.name}] RevealTile CALLED!");
 
-        if (!isCurrentlyVisible)
+        for (int i = 0; i < pieceRenderers.Count; i++)
         {
-            isCurrentlyVisible = true;
-            ShowPieces();
+            if (pieceRenderers[i] != null && originalMaterials[i] != null)
+            {
+                pieceRenderers[i].sharedMaterial = originalMaterials[i];
+            }
         }
     }
 
@@ -201,16 +207,21 @@ public class HexTile : MonoBehaviour
     private void ShowPieces()
     {
         if (pieceRenderers.Count == 0)
+        {
+            Debug.LogWarning($"No renderers cached for {gameObject.name}");
             return;
+        }
 
         for (int i = 0; i < pieceRenderers.Count; i++)
         {
-            if (pieceRenderers[i] != null && i < originalMaterials.Count)
+            if (pieceRenderers[i] != null)
             {
-                pieceRenderers[i].material = originalMaterials[i];
                 pieceRenderers[i].enabled = true;
             }
         }
+
+        // Zorla material güncellemesi yap
+        ForceMaterialUpdate();
     }
 
     private void HidePieces()
@@ -222,20 +233,107 @@ public class HexTile : MonoBehaviour
         {
             if (pieceRenderers[i] != null)
             {
-                if (settings != null && settings.defaultHiddenMaterial != null)
+                if (settings == null || settings.defaultHiddenMaterial == null)
                 {
-                    pieceRenderers[i].material = settings.defaultHiddenMaterial;
+                    pieceRenderers[i].enabled = false;
                 }
                 else
                 {
-                    pieceRenderers[i].enabled = false;
+                    pieceRenderers[i].enabled = true;
+                }
+            }
+        }
+
+        // Zorla material güncellemesi yap
+        if (settings != null && settings.defaultHiddenMaterial != null)
+        {
+            ForceMaterialUpdate();
+        }
+    }
+
+    // Material değişimini zorla uygula
+    private void ForceMaterialUpdate()
+    {
+        StartCoroutine(ForceUpdateCoroutine());
+    }
+
+    private IEnumerator ForceUpdateCoroutine()
+    {
+        // Bir frame bekle
+        yield return null;
+
+        // Material'ları tekrar uygula
+        if (isCurrentlyVisible)
+        {
+            ApplyMaterialsDirectly(false); // Original materials
+        }
+        else
+        {
+            ApplyMaterialsDirectly(true); // Hidden material
+        }
+    }
+
+    private void ApplyMaterialsDirectly(bool useHiddenMaterial)
+    {
+        for (int i = 0; i < pieceRenderers.Count; i++)
+        {
+            if (pieceRenderers[i] != null)
+            {
+                // Occlusion culling durumunu kontrol et
+                if (!pieceRenderers[i].isVisible)
+                {
+                    // Görünmezse zorla görünür yap
+                    pieceRenderers[i].forceRenderingOff = false;
+                }
+
+                if (useHiddenMaterial && settings != null && settings.defaultHiddenMaterial != null)
+                {
+                    // Material array'i kullanarak zorla değiştir
+                    Material[] materials = new Material[pieceRenderers[i].materials.Length];
+                    for (int j = 0; j < materials.Length; j++)
+                    {
+                        materials[j] = settings.defaultHiddenMaterial;
+                    }
+                    pieceRenderers[i].materials = materials;
+                }
+                else if (!useHiddenMaterial && i < originalMaterials.Count)
+                {
+                    // Orijinal material'ı geri yükle
+                    Material[] materials = new Material[pieceRenderers[i].materials.Length];
+                    for (int j = 0; j < materials.Length; j++)
+                    {
+                        materials[j] = originalMaterials[i];
+                    }
+                    pieceRenderers[i].materials = materials;
                 }
             }
         }
     }
 
+    private void ValidateRenderers()
+    {
+        // Null renderer'ları temizle
+        for (int i = pieceRenderers.Count - 1; i >= 0; i--)
+        {
+            if (pieceRenderers[i] == null)
+            {
+                pieceRenderers.RemoveAt(i);
+                if (i < originalMaterials.Count)
+                    originalMaterials.RemoveAt(i);
+            }
+        }
+
+        // Liste boşsa yeniden cache'le
+        if (pieceRenderers.Count == 0 && tile != null)
+        {
+            CachePieceRenderers();
+        }
+    }
+
     private void ApplyFogState()
     {
+        ValidateRenderers();
+
         if (isCurrentlyVisible)
         {
             ShowPieces();
