@@ -17,6 +17,7 @@ public class UnfreezeChilds : MonoBehaviour
 
     private DestructibleObject destructibleObjectScript;
 
+    private GameObject[] childObjects;
     void Start()
     {
         // Cache parent components
@@ -34,6 +35,16 @@ public class UnfreezeChilds : MonoBehaviour
             System.Collections.Generic.List<Rigidbody> childList = new System.Collections.Generic.List<Rigidbody>(childRigidbodies);
             childList.Remove(parentRigidbody);
             childRigidbodies = childList.ToArray();
+        }
+
+
+        int childCount = transform.childCount;
+        childObjects = new GameObject[childCount];
+
+        for (int i = 0; i < childCount; i++)
+        {
+            childObjects[i] = transform.GetChild(i).gameObject;
+            childObjects[i].SetActive(false);
         }
     }
 
@@ -55,7 +66,7 @@ public class UnfreezeChilds : MonoBehaviour
 
             // Fragment is unfrozen if the colliding object has the correct tag (if tag filtering is enabled)
             // and the collision force exceeds the minimum collision force.
-            if (collisionForce > triggerOptions.minimumCollisionForce &&
+            if (collisionForce > MinimumCollisionForce &&
                 (!triggerOptions.filterCollisionsByTag || colliderTagAllowed))
             {
                 this.Fracture();
@@ -77,7 +88,7 @@ public class UnfreezeChilds : MonoBehaviour
     //    }
     //}
 
-    private void Fracture()
+    public void Fracture()
     {
         // Deactivate parent rigidbody and collider
         if (meshRenderer != null)
@@ -95,18 +106,15 @@ public class UnfreezeChilds : MonoBehaviour
             parentCollider.enabled = false;
         }
 
-        // Unfreeze and activate all child rigidbodies
-        foreach (Rigidbody childRb in childRigidbodies)
+        // instead of changing compenent setting directly set active the childs
+        foreach (GameObject childObj in childObjects)
         {
-            if (childRb != null)
+            if (childObj != null)
             {
-                // Unfreeze constraints
-                childRb.constraints = RigidbodyConstraints.None;
-
-                // Make sure it's not kinematic so physics can affect it
-                childRb.isKinematic = false;
+                childObj.SetActive(true);
             }
         }
+
 
         // Mark as fractured
         this.isFrozen = false;
@@ -133,5 +141,11 @@ public class UnfreezeChilds : MonoBehaviour
     public bool IsIntact()
     {
         return this.isFrozen;
+    }
+
+    public float MinimumCollisionForce
+    {
+        get { return triggerOptions.minimumCollisionForce; }
+        set { triggerOptions.minimumCollisionForce = value; }
     }
 }
