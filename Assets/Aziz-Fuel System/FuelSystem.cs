@@ -3,23 +3,46 @@ using UnityEngine;
 public class FuelSystem : MonoBehaviour
 {
     [Header("Fuel Settings")]
-    [SerializeField] private float maxFuel = 100f;
-    [SerializeField] private float currentFuel = 100f;
-    [SerializeField] private float fuelConsumptionRate = 10f; // Fuel per second while moving
-    [SerializeField] private float wallCollisionFuelRate = 20f; // Extra fuel consumption when hitting walls
-    [SerializeField] private float refuelRate = 30f; // Fuel per second when refueling
-    [SerializeField] private float lowFuelThreshold = 20f; // Warning threshold
+    [SerializeField]
+    private float maxFuel = 100f;
+
+    [SerializeField]
+    private float currentFuel = 100f;
+
+    [SerializeField]
+    private float fuelConsumptionRate = 10f; // Fuel per second while moving
+
+    [SerializeField]
+    private float wallCollisionFuelRate = 20f; // Extra fuel consumption when hitting walls
+
+    [SerializeField]
+    private float refuelRate = 30f; // Fuel per second when refueling
+
+    [SerializeField]
+    private float lowFuelThreshold = 20f; // Warning threshold
 
     [Header("Refuel Area")]
-    [SerializeField] private Transform startAreaCenter;
-    [SerializeField] private float refuelAreaRadius = 5f;
-    [SerializeField] private bool autoTeleportOnEmpty = true;
-    [SerializeField] private float teleportDelay = 1f; // Delay before teleporting when fuel is empty
+    [SerializeField]
+    private Transform startAreaCenter;
+
+    [SerializeField]
+    private float refuelAreaRadius = 5f;
+
+    [SerializeField]
+    private bool autoTeleportOnEmpty = true;
+
+    [SerializeField]
+    private float teleportDelay = 1f; // Delay before teleporting when fuel is empty
 
     [Header("Debug Settings")]
-    [SerializeField] private bool debugFuel = true;
-    [SerializeField] private bool debugRefuelArea = true;
-    [SerializeField] private float debugLogInterval = 1f;
+    [SerializeField]
+    private bool debugFuel = true;
+
+    [SerializeField]
+    private bool debugRefuelArea = true;
+
+    [SerializeField]
+    private float debugLogInterval = 1f;
 
     // Components
     private PlayerController playerController;
@@ -88,7 +111,9 @@ public class FuelSystem : MonoBehaviour
 
             if (debugRefuelArea)
             {
-                Debug.Log($"[FuelSystem] Created start area at position: {startAreaCenter.position}");
+                Debug.Log(
+                    $"[FuelSystem] Created start area at position: {startAreaCenter.position}"
+                );
             }
         }
     }
@@ -111,10 +136,12 @@ public class FuelSystem : MonoBehaviour
 
     void HandleFuelConsumption()
     {
-        if (isOutOfFuel || isTeleporting || isRefueling) return;
+        if (isOutOfFuel || isTeleporting || isRefueling)
+            return;
 
         bool isPlayerMoving = playerController != null && playerController.IsMoving();
-        bool isPlayerTryingToMove = playerController != null && playerController.GetJoystickInput().magnitude > 0.1f;
+        bool isPlayerTryingToMove =
+            playerController != null && playerController.GetJoystickInput().magnitude > 0.1f;
 
         // Consume fuel if player is moving OR trying to move (including against walls)
         if (isPlayerMoving || isPlayerTryingToMove)
@@ -177,7 +204,8 @@ public class FuelSystem : MonoBehaviour
 
     void CheckRefuelArea()
     {
-        if (startAreaCenter == null) return;
+        if (startAreaCenter == null)
+            return;
 
         float distanceToStartArea = Vector3.Distance(transform.position, startAreaCenter.position);
         bool wasInRefuelArea = isInRefuelArea;
@@ -190,7 +218,9 @@ public class FuelSystem : MonoBehaviour
 
             if (debugRefuelArea)
             {
-                Debug.Log($"[FuelSystem] {(isInRefuelArea ? "Entered" : "Exited")} refuel area. Distance: {distanceToStartArea:F2}");
+                Debug.Log(
+                    $"[FuelSystem] {(isInRefuelArea ? "Entered" : "Exited")} refuel area. Distance: {distanceToStartArea:F2}"
+                );
             }
         }
     }
@@ -270,7 +300,8 @@ public class FuelSystem : MonoBehaviour
 
     void TeleportToStartArea()
     {
-        if (startAreaCenter == null) return;
+        if (startAreaCenter == null)
+            return;
 
         isTeleporting = true;
 
@@ -281,8 +312,8 @@ public class FuelSystem : MonoBehaviour
         }
 
         // Teleport to start area
-        transform.position = startAreaCenter.position /*+ Vector3.up * 0.5f*/; // Slightly above ground
-        transform.rotation = Quaternion.Euler(new Vector3(0f,-90f,0f)); // start rotation
+        transform.position = startAreaCenter.position;
+        transform.rotation = Quaternion.Euler(new Vector3(0f, -90f, 0f)); // start rotation
 
         // Refill fuel
         currentFuel = maxFuel;
@@ -293,9 +324,18 @@ public class FuelSystem : MonoBehaviour
         OnFuelChanged?.Invoke(currentFuel, maxFuel);
         OnFuelRefilled?.Invoke();
 
+        // 🔁 Chunk'ları yeniden spawn et
+        MapChunkSpawner chunkSpawner = FindObjectOfType<MapChunkSpawner>();
+        if (chunkSpawner != null)
+        {
+            chunkSpawner.SpawnChunks();
+        }
+
         if (debugFuel)
         {
-            Debug.Log($"[FuelSystem] Player teleported to start area and refueled. Position: {transform.position}");
+            Debug.Log(
+                $"[FuelSystem] Player teleported to start area and refueled. Position: {transform.position}"
+            );
         }
     }
 
@@ -313,7 +353,9 @@ public class FuelSystem : MonoBehaviour
 
             if (debugFuel)
             {
-                Debug.Log($"[FuelSystem] Wall collision detected with {collision.gameObject.name}. Normal: {collisionNormal}");
+                Debug.Log(
+                    $"[FuelSystem] Wall collision detected with {collision.gameObject.name}. Normal: {collisionNormal}"
+                );
             }
         }
     }
@@ -324,19 +366,27 @@ public class FuelSystem : MonoBehaviour
         string outOfFuelStatus = isOutOfFuel ? " [OUT OF FUEL]" : "";
         string wallCollisionStatus = isCollidingWithWall ? " [WALL COLLISION]" : "";
 
-        Debug.Log($"[FuelSystem] Fuel: {currentFuel:F1}/{maxFuel} | " +
-                  $"In Refuel Area: {isInRefuelArea} | " +
-                  $"Player Moving: {(playerController != null ? playerController.IsMoving() : false)} | " +
-                  $"{refuelStatus}{outOfFuelStatus}{wallCollisionStatus}");
+        Debug.Log(
+            $"[FuelSystem] Fuel: {currentFuel:F1}/{maxFuel} | "
+                + $"In Refuel Area: {isInRefuelArea} | "
+                + $"Player Moving: {(playerController != null ? playerController.IsMoving() : false)} | "
+                + $"{refuelStatus}{outOfFuelStatus}{wallCollisionStatus}"
+        );
     }
 
     // Public methods for external access
     public float GetCurrentFuel() => currentFuel;
+
     public float GetMaxFuel() => maxFuel;
+
     public float GetFuelPercentage() => currentFuel / maxFuel;
+
     public bool IsRefueling() => isRefueling;
+
     public bool IsOutOfFuel() => isOutOfFuel;
+
     public bool IsInRefuelArea() => isInRefuelArea;
+
     public bool IsLowFuel() => currentFuel <= lowFuelThreshold;
 
     // Methods to modify fuel externally
@@ -388,7 +438,11 @@ public class FuelSystem : MonoBehaviour
 
             // Draw area boundary on ground
             Gizmos.color = new Color(Gizmos.color.r, Gizmos.color.g, Gizmos.color.b, 0.3f);
-            Vector3 groundPos = new Vector3(startAreaCenter.position.x, transform.position.y, startAreaCenter.position.z);
+            Vector3 groundPos = new Vector3(
+                startAreaCenter.position.x,
+                transform.position.y,
+                startAreaCenter.position.z
+            );
             Gizmos.DrawSphere(groundPos, refuelAreaRadius);
 
             // Draw line to start area
@@ -411,7 +465,11 @@ public class FuelSystem : MonoBehaviour
 
             // Fuel bar
             Gizmos.color = fuelPercentage > 0.2f ? Color.green : Color.red;
-            Vector3 fuelBarEnd = Vector3.Lerp(fuelBarPos - Vector3.right, fuelBarPos + Vector3.right, fuelPercentage);
+            Vector3 fuelBarEnd = Vector3.Lerp(
+                fuelBarPos - Vector3.right,
+                fuelBarPos + Vector3.right,
+                fuelPercentage
+            );
             Gizmos.DrawLine(fuelBarPos - Vector3.right, fuelBarEnd);
 
             // Out of fuel indicator

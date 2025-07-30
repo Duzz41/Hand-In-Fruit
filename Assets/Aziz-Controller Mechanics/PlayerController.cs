@@ -3,29 +3,54 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
-    [SerializeField] private float moveSpeed = 10f;
-    [SerializeField] private float rotationSpeed = 100f;
-    [SerializeField] private float acceleration = 5f;
-    [SerializeField] private float deceleration = 8f;
+    [SerializeField]
+    private float moveSpeed = 10f;
+
+    [SerializeField]
+    private float rotationSpeed = 100f;
+
+    [SerializeField]
+    private float acceleration = 5f;
+
+    [SerializeField]
+    private float deceleration = 8f;
 
     [Header("Physics Settings")]
-    [SerializeField] private float maxVelocity = 15f;
-    [SerializeField] private float dragCoefficient = 0.8f;
+    [SerializeField]
+    private float maxVelocity = 15f;
+
+    [SerializeField]
+    private float dragCoefficient = 0.8f;
 
     [Header("Collision Recovery")]
-    [SerializeField] private bool autoRecoverFromCollision = true;
-    [SerializeField] private float recoveryForceMultiplier = 1.2f;
-    [SerializeField] private float collisionRecoveryTime = 1f;
-    [SerializeField] private float minCollisionForceForRecovery = 3f;
+    [SerializeField]
+    private bool autoRecoverFromCollision = true;
+
+    [SerializeField]
+    private float recoveryForceMultiplier = 1.2f;
+
+    [SerializeField]
+    private float collisionRecoveryTime = 1f;
+
+    [SerializeField]
+    private float minCollisionForceForRecovery = 3f;
 
     [Header("Input Settings")]
-    [SerializeField] private bool useBuiltInInput = true;
-    [SerializeField] private bool useVirtualJoystick = true;
+    [SerializeField]
+    private bool useBuiltInInput = true;
+
+    [SerializeField]
+    private bool useVirtualJoystick = true;
 
     [Header("Debug Settings")]
-    [SerializeField] private bool debugVelocity = true;
-    [SerializeField] private bool debugCollisions = true;
-    [SerializeField] private float debugLogInterval = 0.5f;
+    [SerializeField]
+    private bool debugVelocity = true;
+
+    [SerializeField]
+    private bool debugCollisions = true;
+
+    [SerializeField]
+    private float debugLogInterval = 0.5f;
 
     // Components
     private Rigidbody rb;
@@ -84,7 +109,9 @@ public class PlayerController : MonoBehaviour
         fuelSystem = GetComponent<FuelSystem>();
         if (fuelSystem == null)
         {
-            Debug.LogWarning("[PlayerController] FuelSystem component not found. Movement will not be restricted by fuel.");
+            Debug.LogWarning(
+                "[PlayerController] FuelSystem component not found. Movement will not be restricted by fuel."
+            );
         }
     }
 
@@ -108,9 +135,10 @@ public class PlayerController : MonoBehaviour
         rb.mass = 2f;
         rb.linearDamping = dragCoefficient;
         rb.angularDamping = 3f;
-        rb.constraints = RigidbodyConstraints.FreezePositionY |
-                        RigidbodyConstraints.FreezeRotationX |
-                        RigidbodyConstraints.FreezeRotationZ;
+        rb.constraints =
+            RigidbodyConstraints.FreezePositionY
+            | RigidbodyConstraints.FreezeRotationX
+            | RigidbodyConstraints.FreezeRotationZ;
     }
 
     void BackupOriginalPhysicsValues()
@@ -185,21 +213,34 @@ public class PlayerController : MonoBehaviour
 
     void CalculateMovement()
     {
-        moveDirection = new Vector3(joystickInput.x, 0f, joystickInput.y);
+        //moveDirection = new Vector3(joystickInput.x, 0f, joystickInput.y);
+        //float targetSpeed = moveDirection.magnitude * moveSpeed;
+        moveDirection = new Vector3(-joystickInput.y, 0f, joystickInput.x);
         float targetSpeed = moveDirection.magnitude * moveSpeed;
 
         // Only calculate movement if player can move
         if (canMove && moveDirection.magnitude > 0.1f)
         {
-            float currentAcceleration = isRecoveringFromCollision ?
-                acceleration * recoveryForceMultiplier : acceleration;
-            currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, currentAcceleration * Time.deltaTime);
+            float currentAcceleration = isRecoveringFromCollision
+                ? acceleration * recoveryForceMultiplier
+                : acceleration;
+            currentSpeed = Mathf.MoveTowards(
+                currentSpeed,
+                targetSpeed,
+                currentAcceleration * Time.deltaTime
+            );
         }
         else
         {
             // Decelerate when not moving or out of fuel
-            float currentDeceleration = isRecoveringFromCollision ? deceleration * 0.5f : deceleration;
-            currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, currentDeceleration * Time.deltaTime);
+            float currentDeceleration = isRecoveringFromCollision
+                ? deceleration * 0.5f
+                : deceleration;
+            currentSpeed = Mathf.MoveTowards(
+                currentSpeed,
+                0f,
+                currentDeceleration * Time.deltaTime
+            );
         }
 
         targetVelocity = moveDirection.normalized * currentSpeed;
@@ -209,15 +250,28 @@ public class PlayerController : MonoBehaviour
     {
         if (isRecoveringFromCollision)
         {
-            Vector3 currentHorizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            Vector3 currentHorizontalVelocity = new Vector3(
+                rb.linearVelocity.x,
+                0f,
+                rb.linearVelocity.z
+            );
             Vector3 preservedMomentum = preCollisionVelocity * momentumPreservation;
-            Vector3 blendedVelocity = Vector3.Lerp(currentHorizontalVelocity, targetVelocity + preservedMomentum * 0.3f, Time.fixedDeltaTime * 2f);
+            Vector3 blendedVelocity = Vector3.Lerp(
+                currentHorizontalVelocity,
+                targetVelocity + preservedMomentum * 0.3f,
+                Time.fixedDeltaTime * 2f
+            );
 
-            rb.linearVelocity = new Vector3(blendedVelocity.x, rb.linearVelocity.y, blendedVelocity.z);
+            rb.linearVelocity = new Vector3(
+                blendedVelocity.x,
+                rb.linearVelocity.y,
+                blendedVelocity.z
+            );
         }
         else
         {
-            Vector3 velocityDifference = targetVelocity - new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            Vector3 velocityDifference =
+                targetVelocity - new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             Vector3 forceToApply = velocityDifference * rb.mass * acceleration;
             forceToApply = Vector3.ClampMagnitude(forceToApply, rb.mass * moveSpeed * 2f);
             rb.AddForce(forceToApply, ForceMode.Force);
@@ -227,21 +281,50 @@ public class PlayerController : MonoBehaviour
     void ApplyFuelEmptyDeceleration()
     {
         // Gradually slow down the player when out of fuel
-        Vector3 currentHorizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-        Vector3 deceleratedVelocity = Vector3.Lerp(currentHorizontalVelocity, Vector3.zero, Time.fixedDeltaTime * deceleration);
-        rb.linearVelocity = new Vector3(deceleratedVelocity.x, rb.linearVelocity.y, deceleratedVelocity.z);
+        Vector3 currentHorizontalVelocity = new Vector3(
+            rb.linearVelocity.x,
+            0f,
+            rb.linearVelocity.z
+        );
+        Vector3 deceleratedVelocity = Vector3.Lerp(
+            currentHorizontalVelocity,
+            Vector3.zero,
+            Time.fixedDeltaTime * deceleration
+        );
+        rb.linearVelocity = new Vector3(
+            deceleratedVelocity.x,
+            rb.linearVelocity.y,
+            deceleratedVelocity.z
+        );
 
         // Also reduce current speed
         currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, deceleration * Time.deltaTime * 2f);
     }
 
+    //void ApplyRotation()
+    //{
+    //    if (moveDirection.magnitude > 0.1f && currentSpeed > 0.5f && canMove)
+    //    {
+    //        Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+    //        float rotationStep = rotationSpeed * Time.fixedDeltaTime;
+    //        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationStep);
+    //    }
+    //}
+
     void ApplyRotation()
     {
         if (moveDirection.magnitude > 0.1f && currentSpeed > 0.5f && canMove)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+            // The vector for LookRotation needs the horizontal axis to be non-inverted
+            // to ensure the player turns in the correct direction.
+            Vector3 lookDirection = new Vector3(moveDirection.x, 0f, moveDirection.z);
+            Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
             float rotationStep = rotationSpeed * Time.fixedDeltaTime;
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationStep);
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                targetRotation,
+                rotationStep
+            );
         }
     }
 
@@ -252,13 +335,19 @@ public class PlayerController : MonoBehaviour
         {
             Vector3 limitedVelocity = horizontalVelocity.normalized * maxVelocity;
             Vector3 currentVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-            Vector3 smoothLimited = Vector3.Lerp(currentVelocity, limitedVelocity, Time.fixedDeltaTime * 5f);
+            Vector3 smoothLimited = Vector3.Lerp(
+                currentVelocity,
+                limitedVelocity,
+                Time.fixedDeltaTime * 5f
+            );
 
             rb.linearVelocity = new Vector3(smoothLimited.x, rb.linearVelocity.y, smoothLimited.z);
 
             if (debugVelocity)
             {
-                Debug.Log($"[PlayerController] Velocity limited! Original: {horizontalVelocity.magnitude:F2}, Limited to: {maxVelocity}");
+                Debug.Log(
+                    $"[PlayerController] Velocity limited! Original: {horizontalVelocity.magnitude:F2}, Limited to: {maxVelocity}"
+                );
             }
         }
     }
@@ -285,7 +374,9 @@ public class PlayerController : MonoBehaviour
         {
             if (debugCollisions)
             {
-                Debug.LogWarning($"[PlayerController] Mass changed from {originalMass} to {rb.mass}. Resetting.");
+                Debug.LogWarning(
+                    $"[PlayerController] Mass changed from {originalMass} to {rb.mass}. Resetting."
+                );
             }
             rb.mass = originalMass;
         }
@@ -294,7 +385,9 @@ public class PlayerController : MonoBehaviour
         {
             if (debugCollisions)
             {
-                Debug.LogWarning($"[PlayerController] Linear damping changed from {originalDrag} to {rb.linearDamping}. Resetting.");
+                Debug.LogWarning(
+                    $"[PlayerController] Linear damping changed from {originalDrag} to {rb.linearDamping}. Resetting."
+                );
             }
             rb.linearDamping = originalDrag;
         }
@@ -303,7 +396,9 @@ public class PlayerController : MonoBehaviour
         {
             if (debugCollisions)
             {
-                Debug.LogWarning($"[PlayerController] Angular damping changed from {originalAngularDrag} to {rb.angularDamping}. Resetting.");
+                Debug.LogWarning(
+                    $"[PlayerController] Angular damping changed from {originalAngularDrag} to {rb.angularDamping}. Resetting."
+                );
             }
             rb.angularDamping = originalAngularDrag;
         }
@@ -314,8 +409,10 @@ public class PlayerController : MonoBehaviour
     {
         if (debugCollisions)
         {
-            Debug.Log($"[PlayerController] Collision with {collision.gameObject.name}. " +
-                     $"Impact force: {collision.impulse.magnitude:F2}");
+            Debug.Log(
+                $"[PlayerController] Collision with {collision.gameObject.name}. "
+                    + $"Impact force: {collision.impulse.magnitude:F2}"
+            );
         }
 
         // Notify fuel system about wall collision
@@ -324,7 +421,10 @@ public class PlayerController : MonoBehaviour
             fuelSystem.OnWallCollision(collision);
         }
 
-        if (autoRecoverFromCollision && collision.relativeVelocity.magnitude > minCollisionForceForRecovery)
+        if (
+            autoRecoverFromCollision
+            && collision.relativeVelocity.magnitude > minCollisionForceForRecovery
+        )
         {
             preCollisionVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             isRecoveringFromCollision = true;
@@ -332,7 +432,9 @@ public class PlayerController : MonoBehaviour
 
             if (debugCollisions)
             {
-                Debug.Log($"[PlayerController] Starting collision recovery mode. Impact: {collision.relativeVelocity.magnitude:F2}");
+                Debug.Log(
+                    $"[PlayerController] Starting collision recovery mode. Impact: {collision.relativeVelocity.magnitude:F2}"
+                );
             }
         }
     }
@@ -378,20 +480,30 @@ public class PlayerController : MonoBehaviour
 
         string recoveryStatus = isRecoveringFromCollision ? " [RECOVERING]" : "";
         string fuelStatus = !canMove ? " [NO FUEL]" : "";
-        string fuelLevel = fuelSystem != null ? $" Fuel: {fuelSystem.GetCurrentFuel():F1}/{fuelSystem.GetMaxFuel()}" : "";
+        string fuelLevel =
+            fuelSystem != null
+                ? $" Fuel: {fuelSystem.GetCurrentFuel():F1}/{fuelSystem.GetMaxFuel()}"
+                : "";
 
-        Debug.Log($"[PlayerController] Current Velocity: {currentVelocity} | " +
-                  $"Horizontal Speed: {horizontalVelocity.magnitude:F2} | " +
-                  $"Target Speed: {currentSpeed:F2} | " +
-                  $"Moving: {IsMoving()}{recoveryStatus}{fuelStatus}{fuelLevel}");
+        Debug.Log(
+            $"[PlayerController] Current Velocity: {currentVelocity} | "
+                + $"Horizontal Speed: {horizontalVelocity.magnitude:F2} | "
+                + $"Target Speed: {currentSpeed:F2} | "
+                + $"Moving: {IsMoving()}{recoveryStatus}{fuelStatus}{fuelLevel}"
+        );
     }
 
     // Public methods - Updated
     public void SetJoystickInput(Vector2 input) { }
+
     public void SetJoystickInput(float x, float y) { }
+
     public float GetCurrentSpeed() => currentSpeed;
+
     public Vector2 GetJoystickInput() => joystickInput;
+
     public bool IsMoving() => currentSpeed > 0.1f;
+
     public bool CanMove() => canMove; // New: Check if player can move
 
     // New public methods
