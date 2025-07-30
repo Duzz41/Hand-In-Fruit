@@ -95,6 +95,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8280290434491002705}
+  - component: {fileID: 226926074350808043}
   - component: {fileID: 8524819118402281967}
   - component: {fileID: 5957621745458709526}
   - component: {fileID: 7597223986934019245}
@@ -123,6 +124,24 @@ Transform:
   - {fileID: 9018759532501092276}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
+--- !u!114 &226926074350808043
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5568921876978857857}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28884685654858d47aa2a6db4445ae0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  forceIncreaseRate: 100
+  forceApplicationMagnitude: 500
+  frontAngleThreshold: 60
+  minMovementThreshold: 0.1
+  debugForceBuildup: 1
+  showDebugGizmos: 1
 --- !u!114 &8524819118402281967
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -145,8 +164,8 @@ MonoBehaviour:
   refuelAreaRadius: 5
   autoTeleportOnEmpty: 1
   teleportDelay: 1
-  debugFuel: 1
-  debugRefuelArea: 1
+  debugFuel: 0
+  debugRefuelArea: 0
   debugLogInterval: 1
 --- !u!114 &5957621745458709526
 MonoBehaviour:
