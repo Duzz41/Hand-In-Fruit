@@ -45,7 +45,7 @@ public class MapChunkSpawner : MonoBehaviour
 
                 float posX = x * (gridCellSize.x + chunkSpacing);
                 float posZ = y * (gridCellSize.y + chunkSpacing);
-                Vector3 spawnPos = new Vector3(posX, 0, posZ);
+                Vector3 spawnPos = new Vector3(posX, transform.position.y, posZ);
 
                 GameObject chunk = Instantiate(
                     prefabToSpawn,

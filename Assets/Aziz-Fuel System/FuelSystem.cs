@@ -59,6 +59,9 @@ public class FuelSystem : MonoBehaviour
     private float wallCollisionTimer = 0f;
     private const float wallCollisionCooldown = 0.1f; // Prevent rapid fuel drain
 
+    [SerializeField]
+    private RunIntroManager introManager;
+
     // Debug variables
     private float lastDebugTime = 0f;
     private float lastFuelAmount = 0f;
@@ -202,6 +205,8 @@ public class FuelSystem : MonoBehaviour
         }
     }
 
+    private bool hasLoadedOnceSinceLastExit = false;
+
     void CheckRefuelArea()
     {
         if (startAreaCenter == null)
@@ -221,6 +226,15 @@ public class FuelSystem : MonoBehaviour
                 Debug.Log(
                     $"[FuelSystem] {(isInRefuelArea ? "Entered" : "Exited")} refuel area. Distance: {distanceToStartArea:F2}"
                 );
+            }
+
+            // 🔁 Harita sadece tekrar girildiğinde yüklensin
+            if (isInRefuelArea)
+            {
+                if (introManager != null)
+                {
+                    introManager.PlayIntro();
+                }
             }
         }
     }
@@ -325,10 +339,9 @@ public class FuelSystem : MonoBehaviour
         OnFuelRefilled?.Invoke();
 
         // 🔁 Chunk'ları yeniden spawn et
-        MapChunkSpawner chunkSpawner = FindObjectOfType<MapChunkSpawner>();
-        if (chunkSpawner != null)
+        if (introManager != null)
         {
-            chunkSpawner.SpawnChunks();
+            introManager.PlayIntro();
         }
 
         if (debugFuel)
