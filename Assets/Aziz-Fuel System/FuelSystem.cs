@@ -281,7 +281,7 @@ public class FuelSystem : MonoBehaviour
         }
 
         // Teleport to start area
-        transform.position = startAreaCenter.position + Vector3.up * 0.5f; // Slightly above ground
+        transform.position = startAreaCenter.position /*+ Vector3.up * 0.5f*/; // Slightly above ground
         transform.rotation = Quaternion.Euler(new Vector3(0f,-90f,0f)); // start rotation
 
         // Refill fuel
