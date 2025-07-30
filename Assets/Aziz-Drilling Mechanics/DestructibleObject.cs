@@ -20,6 +20,8 @@ public class DestructibleObject : MonoBehaviour
 
     [Header("Player Reference")]
     public Transform playerTransform; // Reference to player for collection position
+    public float minRandomForceAmount = 3.0f;
+    public float maxRandomForceAmount = 6.0f;
 
     void Start()
     {
@@ -46,7 +48,7 @@ public class DestructibleObject : MonoBehaviour
         InventoryManager.Instance.ShowInventory();
 
         CollectNearbyDebris();
-        AddRandomForceToChildren(2, 5);
+        AddRandomForceToChildren(minRandomForceAmount, maxRandomForceAmount);
         StartCoroutine(CleanupDebris());
     }
 
