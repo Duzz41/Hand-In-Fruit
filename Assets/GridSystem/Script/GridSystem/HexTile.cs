@@ -17,6 +17,15 @@ public class HexTile : MonoBehaviour
     [SerializeField]
     private bool isCurrentlyVisible = false;
 
+    [SerializeField]
+    private bool isInXRayMode = false;
+
+    [Header("Valuable Resource")]
+    public bool hasValuableResource = false; // Inspector'dan ayarlanabilir
+
+    [Range(0f, 1f)]
+    public float valuableResourceChance = 0.1f; // %10 şans ile değerli kaynak
+
     [Header("Debug & Editor Options")]
     public bool editorForceVisible = false;
 
@@ -61,6 +70,9 @@ public class HexTile : MonoBehaviour
         tile = GameObject.Instantiate(settings.GetTile(tileType));
         tile.transform.SetParent(this.transform);
         tile.transform.localPosition = Vector3.zero;
+
+        // Valuable resource'u otomatik belirle
+        DetermineValuableResource();
 
         // Piece'lerin layer'ını Debris yap
         SetPiecesLayer("Debris");
@@ -173,6 +185,14 @@ public class HexTile : MonoBehaviour
     public void RevealTile()
     {
         Debug.Log($"[{gameObject.name}] RevealTile CALLED!");
+        isCurrentlyVisible = true;
+        isRevealed = true;
+
+        // X-Ray modunu kapat
+        if (isInXRayMode)
+        {
+            SetXRayMode(false);
+        }
 
         for (int i = 0; i < pieceRenderers.Count; i++)
         {
@@ -185,10 +205,83 @@ public class HexTile : MonoBehaviour
 
     public void HideTile()
     {
-        if (Application.isPlaying && isRevealed && isCurrentlyVisible)
+        if (Application.isPlaying)
         {
-            isCurrentlyVisible = false;
-            HidePieces();
+            if (!isRevealed)
+            {
+                isCurrentlyVisible = false;
+                HidePieces();
+            }
+            else if (!hasValuableResource) // Eğer değerli kaynak yoksa gizle
+            {
+                RestoreOriginalMaterials(); // Normal materyali geri yükle
+            }
+        }
+    }
+
+    // X-RAY METHODS
+    public void SetXRayMode(bool enable)
+    {
+        isInXRayMode = enable;
+
+        if (enable)
+        {
+            // Sadece hiç reveal edilmemiş (hidden) tile'lara X-Ray uygula
+            if (!isRevealed)
+            {
+                ApplyXRayMaterial();
+            }
+        }
+        else
+        {
+            // X-Ray bitince: eğer hiç reveal edilmemişse tekrar hidden yap
+            if (!isRevealed)
+            {
+                HidePieces();
+            }
+            else
+            {
+                // Eğer reveal edilmişse, normal materyali geri yükle
+                RestoreOriginalMaterials();
+            }
+        }
+    }
+
+    private void RestoreOriginalMaterials()
+    {
+        for (int i = 0; i < pieceRenderers.Count; i++)
+        {
+            if (pieceRenderers[i] != null && originalMaterials[i] != null)
+            {
+                pieceRenderers[i].materials = new Material[] { originalMaterials[i] };
+            }
+        }
+    }
+
+    private void ApplyXRayMaterial()
+    {
+        if (settings == null)
+            return;
+
+        Material xrayMat = hasValuableResource
+            ? settings.xrayValuableMaterial
+            : settings.xrayNormalMaterial;
+
+        if (xrayMat == null)
+            return;
+
+        for (int i = 0; i < pieceRenderers.Count; i++)
+        {
+            if (pieceRenderers[i] != null)
+            {
+                pieceRenderers[i].enabled = true;
+                Material[] materials = new Material[pieceRenderers[i].materials.Length];
+                for (int j = 0; j < materials.Length; j++)
+                {
+                    materials[j] = xrayMat;
+                }
+                pieceRenderers[i].materials = materials;
+            }
         }
     }
 
@@ -347,10 +440,17 @@ public class HexTile : MonoBehaviour
     // PUBLIC PROPERTIES
     public bool IsRevealed => isRevealed;
     public bool IsCurrentlyVisible => isCurrentlyVisible;
+    public bool IsInXRayMode => isInXRayMode;
 
     public void RollTileType()
     {
         tileType = (HexTileGenerationSettings.TileType)Random.Range(0, 3);
+
+        // Tile type değişince valuable resource'u yeniden hesapla
+        if (Application.isPlaying)
+        {
+            OnTileTypeChanged();
+        }
     }
 
     public static Vector3Int OffsetToCube(Vector2Int offset)
@@ -358,5 +458,44 @@ public class HexTile : MonoBehaviour
         var q = offset.x - (offset.y - (offset.y % 2)) / 2;
         var r = offset.y;
         return new Vector3Int(q, r, -q - r);
+    }
+
+    // VALUABLE RESOURCE METHODS
+    private void DetermineValuableResource()
+    {
+        // Eğer settings'te bu tile type için özel ayar varsa onu kullan
+        if (settings != null && settings.HasValuableResourceSettings())
+        {
+            hasValuableResource = settings.IsValuableResourceType(tileType);
+        }
+        else
+        {
+            // Rastgele belirle
+            hasValuableResource = Random.value < valuableResourceChance;
+        }
+
+        // Debug için
+        if (hasValuableResource)
+        {
+            Debug.Log($"[{gameObject.name}] Valuable resource detected! Type: {tileType}");
+        }
+    }
+
+    // Manuel olarak valuable resource durumunu değiştir
+    public void SetValuableResource(bool isValuable)
+    {
+        hasValuableResource = isValuable;
+
+        // Eğer şu anda X-Ray modundaysa ve reveal edilmemişse materyali güncelle
+        if (isInXRayMode && !isRevealed)
+        {
+            ApplyXRayMaterial();
+        }
+    }
+
+    // Tile type değişince valuable resource'u yeniden hesapla
+    public void OnTileTypeChanged()
+    {
+        DetermineValuableResource();
     }
 }
