@@ -1,11 +1,10 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class InventoryManager : MonoBehaviour
 {
     private static InventoryManager _instance;
-
     public static InventoryManager Instance
     {
         get
@@ -13,35 +12,43 @@ public class InventoryManager : MonoBehaviour
             if (_instance == null)
             {
                 _instance = FindFirstObjectByType<InventoryManager>();
-
                 if (_instance == null)
                 {
                     GameObject inventoryManagerObject = new GameObject("InventoryManager");
                     _instance = inventoryManagerObject.AddComponent<InventoryManager>();
-                    DontDestroyOnLoad(inventoryManagerObject);
                 }
             }
             return _instance;
         }
     }
 
-    [Header("Inventory")]
     public Dictionary<string, int> inventory = new Dictionary<string, int>();
-
-    [Header("Debug")]
     public bool showCollectionSphere = true;
+
+    // Events
+    public static event Action<string, int> OnResourceCollected;
+    public static event Action<string, int> OnResourceUsed;
+    public static event Action OnInventoryCleared;
 
     private void Awake()
     {
-        // Ensure only one instance exists
         if (_instance != null && _instance != this)
         {
             Destroy(gameObject);
             return;
         }
-
         _instance = this;
         DontDestroyOnLoad(gameObject);
+    }
+
+    private void OnDestroy()
+    {
+        if (_instance == this)
+        {
+            OnResourceCollected = null;
+            OnResourceUsed = null;
+            OnInventoryCleared = null;
+        }
     }
 
     public void CollectResource(string resourceType, int amount)
@@ -54,6 +61,7 @@ public class InventoryManager : MonoBehaviour
         {
             inventory[resourceType] = amount;
         }
+        OnResourceCollected?.Invoke(resourceType, amount);
         Debug.Log($"Collected {resourceType}! Total: {inventory[resourceType]}");
     }
 
@@ -73,6 +81,9 @@ public class InventoryManager : MonoBehaviour
             {
                 inventory.Remove(resourceType);
             }
+
+            // Invoke the event after successfully using the resource
+            OnResourceUsed?.Invoke(resourceType, amount);
             Debug.Log($"Used {amount} {resourceType}! Remaining: {GetResourceCount(resourceType)}");
             return true;
         }
@@ -93,7 +104,6 @@ public class InventoryManager : MonoBehaviour
             Debug.Log("Inventory is empty");
             return;
         }
-
         foreach (var item in inventory)
         {
             Debug.Log($"{item.Key}: {item.Value}");
@@ -105,6 +115,7 @@ public class InventoryManager : MonoBehaviour
     public void ClearInventory()
     {
         inventory.Clear();
+        OnInventoryCleared?.Invoke();
         Debug.Log("Inventory cleared!");
     }
 

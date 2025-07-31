@@ -6,37 +6,21 @@ public class UnfreezeChilds : MonoBehaviour
     [Tooltip("Options for triggering the fracture")]
     public TriggerOptions triggerOptions;
 
-    // True if this object has not been fractured yet
     private bool isFrozen = true;
 
-    // Cache references to avoid repeated GetComponent calls
+    // Cached components
     private Rigidbody parentRigidbody;
     private MeshCollider parentCollider;
     private MeshRenderer meshRenderer;
-    private Rigidbody[] childRigidbodies;
-
     private DestructibleObject destructibleObjectScript;
-
     private GameObject[] childObjects;
+
     void Start()
     {
-        // Cache parent components
         parentRigidbody = GetComponent<Rigidbody>();
         parentCollider = GetComponent<MeshCollider>();
         meshRenderer = GetComponent<MeshRenderer>();
         destructibleObjectScript = GetComponent<DestructibleObject>();
-
-        // Cache all child rigidbodies
-        childRigidbodies = GetComponentsInChildren<Rigidbody>();
-
-        // Remove parent rigidbody from the array if it exists
-        if (parentRigidbody != null)
-        {
-            System.Collections.Generic.List<Rigidbody> childList = new System.Collections.Generic.List<Rigidbody>(childRigidbodies);
-            childList.Remove(parentRigidbody);
-            childRigidbodies = childList.ToArray();
-        }
-
 
         int childCount = transform.childCount;
         childObjects = new GameObject[childCount];
@@ -50,47 +34,39 @@ public class UnfreezeChilds : MonoBehaviour
 
     void OnCollisionEnter(Collision collision)
     {
-        if (!this.isFrozen)
+        if (!isFrozen)
         {
             return;
         }
 
         if (collision.contactCount > 0)
         {
-            // Collision force must exceed the minimum force (F = I / T = F)
             var contact = collision.contacts[0];
             var collisionForce = collision.impulse.magnitude / Time.fixedDeltaTime;
-
-            // Colliding object tag must be in the set of allowed collision tags if filtering by tag is enabled
             bool colliderTagAllowed = triggerOptions.IsTagAllowed(contact.otherCollider.gameObject.tag);
 
-            // Fragment is unfrozen if the colliding object has the correct tag (if tag filtering is enabled)
-            // and the collision force exceeds the minimum collision force.
             if (collisionForce > MinimumCollisionForce &&
                 (!triggerOptions.filterCollisionsByTag || colliderTagAllowed))
             {
-                this.Fracture();
+                Fracture();
             }
         }
     }
 
-    //void OnTriggerEnter(Collider collider)
-    //{
-    //    if (!this.isFrozen)
-    //    {
-    //        return;
-    //    }
-
-    //    bool tagAllowed = triggerOptions.IsTagAllowed(collider.gameObject.tag);
-    //    if (!triggerOptions.filterCollisionsByTag || triggerOptions.IsTagAllowed(collider.gameObject.tag))
-    //    {
-    //        this.Fracture();
-    //    }
-    //}
-
+    /// <summary>
+    /// **FIXED:** This method now ensures it can only run once.
+    /// </summary>
     public void Fracture()
     {
-        // Deactivate parent rigidbody and collider
+        // 1. Add a guard clause. If already fractured, exit immediately.
+        if (!isFrozen)
+        {
+            return;
+        }
+
+        // 2. Set the state immediately to prevent any other calls from getting through.
+        isFrozen = false;
+
         if (meshRenderer != null)
         {
             meshRenderer.enabled = false;
@@ -106,7 +82,6 @@ public class UnfreezeChilds : MonoBehaviour
             parentCollider.enabled = false;
         }
 
-        // instead of changing compenent setting directly set active the childs
         foreach (GameObject childObj in childObjects)
         {
             if (childObj != null)
@@ -115,32 +90,22 @@ public class UnfreezeChilds : MonoBehaviour
             }
         }
 
-
-        // Mark as fractured
-        this.isFrozen = false;
-
-        destructibleObjectScript.DoThisWhenBrokenIntoPieces();
-
-        // Invoke completion callback
-        //if (this.onFractureCompleted != null)
-        //{
-        //    this.onFractureCompleted.Invoke();
-        //}
-    }
-
-    // Public method to manually trigger fracture (useful for testing or other scripts)
-    public void TriggerFracture()
-    {
-        if (this.isFrozen)
+        // 3. Call the logic from the other script *after* the state is secured.
+        if (destructibleObjectScript != null)
         {
-            this.Fracture();
+            destructibleObjectScript.DoThisWhenBrokenIntoPieces();
         }
     }
 
-    // Method to check if the object is still intact
+    public void TriggerFracture()
+    {
+        // This now safely calls the guarded Fracture method.
+        Fracture();
+    }
+
     public bool IsIntact()
     {
-        return this.isFrozen;
+        return isFrozen;
     }
 
     public float MinimumCollisionForce

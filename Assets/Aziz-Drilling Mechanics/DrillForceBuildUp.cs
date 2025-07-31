@@ -31,6 +31,9 @@ public class DrillForceBuildup : MonoBehaviour
     private Vector3 collisionDirection;
     private Vector3 playerMovementDirection;
 
+    // Vibration related
+    private VibratePlayer playerVibrator;
+
     void Start()
     {
         // Get required components
@@ -46,11 +49,38 @@ public class DrillForceBuildup : MonoBehaviour
         {
             Debug.LogError("[ForceBuildup] Rigidbody component not found!");
         }
+
+        playerVibrator = GetComponent<VibratePlayer>();
+        if (playerVibrator == null)
+        {
+            Debug.LogWarning("[ForceBuildup] VibratePlayer component not found. " +
+                             "Shake and vibration functionality will be disabled.");
+        }
     }
 
     void Update()
     {
+        bool wasValidForceBuildup = IsValidForceBuildup();
+
         UpdateForceBuildup();
+
+        bool isValidForceBuildup = IsValidForceBuildup();
+
+        // Only change vibration state when the condition actually changes
+        if (isValidForceBuildup && !forceAlreadyApplied)
+        {
+            if (playerVibrator != null && !playerVibrator.IsShaking())
+            {
+                playerVibrator.StartShaking();
+            }
+        }
+        else
+        {
+            if (playerVibrator != null && playerVibrator.IsShaking())
+            {
+                playerVibrator.StopShaking();
+            }
+        }
     }
 
     void UpdateForceBuildup()
@@ -166,6 +196,12 @@ public class DrillForceBuildup : MonoBehaviour
             }
         }
 
+        if (playerVibrator != null)
+        {
+            playerVibrator.StopShaking();
+            playerVibrator.VibratePhone(); // Trigger phone vibration
+        }
+
         // Call the fracture method
         currentTargetScript.Fracture();
 
@@ -216,6 +252,11 @@ public class DrillForceBuildup : MonoBehaviour
             currentCollision = null;
             forceValue = 0f;
             forceAlreadyApplied = false;
+
+            if (playerVibrator != null)
+            {
+                playerVibrator.StopShaking();
+            }
         }
     }
 
@@ -326,7 +367,7 @@ public class DrillForceBuildup : MonoBehaviour
     }
 
     // Optional UI/Debug display method
-    void OnGUI()
+    void OnGUI()    
     {
         if (!debugForceBuildup)
             return;
