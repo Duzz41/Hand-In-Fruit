@@ -1,4 +1,4 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,35 +13,38 @@ public class InventoryManager : MonoBehaviour
             if (_instance == null)
             {
                 _instance = FindFirstObjectByType<InventoryManager>();
-
                 if (_instance == null)
                 {
                     GameObject inventoryManagerObject = new GameObject("InventoryManager");
                     _instance = inventoryManagerObject.AddComponent<InventoryManager>();
-                    DontDestroyOnLoad(inventoryManagerObject);
                 }
             }
             return _instance;
         }
     }
 
-    [Header("Inventory")]
     public Dictionary<string, int> inventory = new Dictionary<string, int>();
+    public bool showCollectionSphere=true;
 
-    [Header("Debug")]
-    public bool showCollectionSphere = true;
+    public static event Action<string, int> OnResourceCollected;
 
     private void Awake()
     {
-        // Ensure only one instance exists
         if (_instance != null && _instance != this)
         {
             Destroy(gameObject);
             return;
         }
-
         _instance = this;
         DontDestroyOnLoad(gameObject);
+    }
+
+    private void OnDestroy()
+    {
+        if (_instance == this)
+        {
+            OnResourceCollected = null;
+        }
     }
 
     public void CollectResource(string resourceType, int amount)
@@ -54,6 +57,7 @@ public class InventoryManager : MonoBehaviour
         {
             inventory[resourceType] = amount;
         }
+        OnResourceCollected?.Invoke(resourceType, amount);
         Debug.Log($"Collected {resourceType}! Total: {inventory[resourceType]}");
     }
 
