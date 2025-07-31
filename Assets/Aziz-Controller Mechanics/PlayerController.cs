@@ -562,7 +562,7 @@ public class PlayerController : MonoBehaviour
 
             // Recovery mode indicator
             if (isRecoveringFromCollision)
-            {
+            { 
                 Gizmos.color = Color.red;
                 Gizmos.DrawWireSphere(transform.position + Vector3.up * 2f, 0.5f);
             }
