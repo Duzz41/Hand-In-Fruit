@@ -20,8 +20,11 @@ public class RunIntroManager : MonoBehaviour
     public float doorMoveDuration = 1.5f;
     public float mountainMoveDuration = 1.5f;
 
+    private PlayerController playerController;
+
     void Start()
     {
+        playerController = FindObjectOfType<PlayerController>();
         StartCoroutine(IntroSequence());
     }
 
@@ -35,6 +38,7 @@ public class RunIntroManager : MonoBehaviour
     IEnumerator IntroSequence()
     {
         // Kapı yukarı çıkar
+        playerController.SetMovementEnabled(false);
         door.DOMove(doorOpenPos.position, doorMoveDuration);
         yield return new WaitForSeconds(doorMoveDuration);
 
@@ -52,7 +56,7 @@ public class RunIntroManager : MonoBehaviour
         // Kapı aşağı iner
         door.DOMove(doorStartPos.position, doorMoveDuration);
         yield return new WaitForSeconds(doorMoveDuration);
-
+        playerController.SetMovementEnabled(true);
         Debug.Log("Intro bitti, oyun başlıyor.");
     }
 }
