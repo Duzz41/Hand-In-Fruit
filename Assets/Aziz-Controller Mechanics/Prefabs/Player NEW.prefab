@@ -1316,6 +1316,9 @@ MonoBehaviour:
   forceApplicationMagnitude: 500
   frontAngleThreshold: 60
   minMovementThreshold: 0.1
+  objectShakeMagnitude: 0.025
+  objectShakeSpeed: 30
+  enableObjectShake: 1
   debugForceBuildup: 0
   showDebugGizmos: 0
 --- !u!114 &2044480311078601371
