@@ -9,6 +9,11 @@ public class DrillForceBuildup : MonoBehaviour
     [SerializeField] private float frontAngleThreshold = 60f; // Angle threshold to consider "front" collision
     [SerializeField] private float minMovementThreshold = 0.1f; // Minimum movement to consider player moving
 
+    [Header("Object Shake Settings")]
+    [SerializeField] private float objectShakeMagnitude = 0.02f; // Shake intensity for collided objects
+    [SerializeField] private float objectShakeSpeed = 30f; // Speed of shake animation for objects
+    [SerializeField] private bool enableObjectShake = true; // Toggle for object shaking
+
     [Header("Debug Settings")]
     [SerializeField] private bool debugForceBuildup = true;
     [SerializeField] private bool showDebugGizmos = true;
@@ -33,6 +38,12 @@ public class DrillForceBuildup : MonoBehaviour
 
     // Vibration related
     private VibratePlayer playerVibrator;
+
+    // Object shaking related
+    private Transform currentTargetTransform;
+    private Vector3 targetInitialPosition;
+    private bool isShakingTarget = false;
+    private Coroutine objectShakeCoroutine;
 
     void Start()
     {
@@ -66,12 +77,18 @@ public class DrillForceBuildup : MonoBehaviour
 
         bool isValidForceBuildup = IsValidForceBuildup();
 
-        // Only change vibration state when the condition actually changes
+        // Handle player vibration
         if (isValidForceBuildup && !forceAlreadyApplied)
         {
             if (playerVibrator != null && !playerVibrator.IsShaking())
             {
                 playerVibrator.StartShaking();
+            }
+
+            // Start shaking the target object
+            if (enableObjectShake && !isShakingTarget && currentTargetTransform != null)
+            {
+                StartShakingTarget();
             }
         }
         else
@@ -79,6 +96,12 @@ public class DrillForceBuildup : MonoBehaviour
             if (playerVibrator != null && playerVibrator.IsShaking())
             {
                 playerVibrator.StopShaking();
+            }
+
+            // Stop shaking the target object
+            if (isShakingTarget)
+            {
+                StopShakingTarget();
             }
         }
     }
@@ -164,6 +187,12 @@ public class DrillForceBuildup : MonoBehaviour
         if (currentTargetObject == null || currentTargetScript == null)
             return;
 
+        // Stop shaking before applying force
+        if (isShakingTarget)
+        {
+            StopShakingTarget();
+        }
+
         // Get the rigidbody of the target object (could be on parent or child)
         Rigidbody targetRigidbody = currentTargetObject.GetComponent<Rigidbody>();
         if (targetRigidbody == null)
@@ -218,6 +247,68 @@ public class DrillForceBuildup : MonoBehaviour
         StartCoroutine(ResetForceAppliedFlag());
     }
 
+    private void StartShakingTarget()
+    {
+        if (currentTargetTransform == null || isShakingTarget)
+            return;
+
+        isShakingTarget = true;
+        targetInitialPosition = currentTargetTransform.localPosition;
+        objectShakeCoroutine = StartCoroutine(ShakeTargetCoroutine());
+
+        if (debugForceBuildup)
+        {
+            Debug.Log($"[ForceBuildup] Started shaking target: {currentTargetObject.name}");
+        }
+    }
+
+    private void StopShakingTarget()
+    {
+        if (!isShakingTarget)
+            return;
+
+        isShakingTarget = false;
+
+        if (objectShakeCoroutine != null)
+        {
+            StopCoroutine(objectShakeCoroutine);
+            objectShakeCoroutine = null;
+        }
+
+        // Reset target position
+        if (currentTargetTransform != null)
+        {
+            currentTargetTransform.localPosition = targetInitialPosition;
+        }
+
+        if (debugForceBuildup)
+        {
+            Debug.Log($"[ForceBuildup] Stopped shaking target");
+        }
+    }
+
+    private IEnumerator ShakeTargetCoroutine()
+    {
+        while (isShakingTarget && currentTargetTransform != null)
+        {
+            // Calculate a random offset for the shake using Perlin noise
+            Vector3 randomOffset = new Vector3(
+                Mathf.PerlinNoise(Time.time * objectShakeSpeed, 0) * 2 - 1,
+                Mathf.PerlinNoise(0, Time.time * objectShakeSpeed) * 2 - 1,
+                Mathf.PerlinNoise(Time.time * objectShakeSpeed, Time.time * objectShakeSpeed) * 2 - 1
+            ) * objectShakeMagnitude;
+
+            currentTargetTransform.localPosition = targetInitialPosition + randomOffset;
+            yield return null;
+        }
+
+        // Reset the target's position back to its original state
+        if (currentTargetTransform != null)
+        {
+            currentTargetTransform.localPosition = targetInitialPosition;
+        }
+    }
+
     IEnumerator ResetForceAppliedFlag()
     {
         // Wait a short time before allowing another force application
@@ -245,10 +336,17 @@ public class DrillForceBuildup : MonoBehaviour
                 Debug.Log($"[ForceBuildup] Exited collision with target: {collision.gameObject.name}");
             }
 
+            // Stop shaking before clearing references
+            if (isShakingTarget)
+            {
+                StopShakingTarget();
+            }
+
             // Clear current collision state
             isInValidCollision = false;
             currentTargetObject = null;
             currentTargetScript = null;
+            currentTargetTransform = null;
             currentCollision = null;
             forceValue = 0f;
             forceAlreadyApplied = false;
@@ -287,6 +385,7 @@ public class DrillForceBuildup : MonoBehaviour
             // Update current collision state
             currentTargetObject = collision.gameObject;
             currentTargetScript = unfreezeScript;
+            currentTargetTransform = collision.transform;
             currentCollision = collision;
             isInValidCollision = true;
 
@@ -328,6 +427,26 @@ public class DrillForceBuildup : MonoBehaviour
     {
         forceValue = 0f;
         forceAlreadyApplied = false;
+
+        // Also stop any ongoing shaking
+        if (isShakingTarget)
+        {
+            StopShakingTarget();
+        }
+    }
+
+    public bool IsShakingTarget()
+    {
+        return isShakingTarget;
+    }
+
+    public void SetObjectShakeEnabled(bool enabled)
+    {
+        enableObjectShake = enabled;
+        if (!enabled && isShakingTarget)
+        {
+            StopShakingTarget();
+        }
     }
 
     // Debug visualization
@@ -364,15 +483,22 @@ public class DrillForceBuildup : MonoBehaviour
             Gizmos.DrawLine(transform.position + Vector3.up * 0.5f,
                            transform.position + Vector3.up * 0.5f + movementDir * 2f);
         }
+
+        // Indicate if target is shaking
+        if (isShakingTarget && currentTargetObject != null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireCube(currentTargetObject.transform.position, Vector3.one * 0.5f);
+        }
     }
 
     // Optional UI/Debug display method
-    void OnGUI()    
+    void OnGUI()
     {
         if (!debugForceBuildup)
             return;
 
-        GUILayout.BeginArea(new Rect(10, 10, 300, 150));
+        GUILayout.BeginArea(new Rect(10, 10, 300, 180));
         GUILayout.Label($"Force Value: {forceValue:F1}");
 
         if (currentTargetScript != null)
@@ -384,6 +510,7 @@ public class DrillForceBuildup : MonoBehaviour
 
         GUILayout.Label($"Valid Collision: {isInValidCollision}");
         GUILayout.Label($"Force Applied: {forceAlreadyApplied}");
+        GUILayout.Label($"Shaking Target: {isShakingTarget}");
 
         if (currentTargetObject != null)
         {
@@ -391,5 +518,14 @@ public class DrillForceBuildup : MonoBehaviour
         }
 
         GUILayout.EndArea();
+    }
+
+    void OnDisable()
+    {
+        // Clean up when the component is disabled
+        if (isShakingTarget)
+        {
+            StopShakingTarget();
+        }
     }
 }
