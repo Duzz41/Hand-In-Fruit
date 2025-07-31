@@ -78,11 +78,15 @@ public class TrailerVisualizer : MonoBehaviour
     void OnEnable()
     {
         InventoryManager.OnResourceCollected += HandleResourceCollected;
+        InventoryManager.OnResourceUsed += HandleResourceUsed;
+        InventoryManager.OnInventoryCleared += HandleInventoryCleared;
     }
 
     void OnDisable()
     {
         InventoryManager.OnResourceCollected -= HandleResourceCollected;
+        InventoryManager.OnResourceUsed -= HandleResourceUsed;
+        InventoryManager.OnInventoryCleared -= HandleInventoryCleared;
     }
 
     private void UpdateColliderHeight()
@@ -124,6 +128,99 @@ public class TrailerVisualizer : MonoBehaviour
         else
         {
             Debug.LogWarning($"[TrailerVisualizer] No prefab found for resource type: {resourceType}");
+        }
+    }
+
+    private void HandleResourceUsed(string resourceType, int amount)
+    {
+        if (_resourcePrefabDict.TryGetValue(resourceType, out GameObject prefabType))
+        {
+            // Remove visual boxes from the end of the list (LIFO - Last In, First Out)
+            int boxesToRemove = Mathf.Min(amount, _instantiatedBoxes.Count);
+
+            for (int i = 0; i < boxesToRemove; i++)
+            {
+                if (_instantiatedBoxes.Count > 0)
+                {
+                    GameObject lastBox = _instantiatedBoxes[_instantiatedBoxes.Count - 1];
+
+                    // Check if this box matches the resource type being used
+                    // This is a simple check - you might want to store resource type info with each box for better accuracy
+                    if (lastBox != null)
+                    {
+                        _instantiatedBoxes.RemoveAt(_instantiatedBoxes.Count - 1);
+
+                        if (Application.isPlaying)
+                            Destroy(lastBox);
+                        else
+                            DestroyImmediate(lastBox);
+                    }
+                }
+            }
+
+            // If we removed boxes, trailer is no longer full and we might need to recalculate positions
+            if (boxesToRemove > 0)
+            {
+                _isFull = false;
+                RecalculateNextPosition();
+            }
+
+            Debug.Log($"[TrailerVisualizer] Removed {boxesToRemove} visual boxes for {resourceType}");
+        }
+    }
+
+    private void HandleInventoryCleared()
+    {
+        ClearVisuals();
+        Debug.Log("[TrailerVisualizer] Trailer visuals cleared due to inventory clear.");
+    }
+
+    private void RecalculateNextPosition()
+    {
+        if (_instantiatedBoxes.Count == 0)
+        {
+            _isInitialized = false;
+            _currentLayerMaxHeight = 0f;
+            _currentRowMaxDepth = 0f;
+            return;
+        }
+
+        // Simple approach: reset to initial position and "simulate" placing all existing boxes
+        // This recalculates where the next box should go
+        _nextPosition = stackingVolume.center - stackingVolume.size / 2;
+        _currentLayerMaxHeight = 0f;
+        _currentRowMaxDepth = 0f;
+
+        foreach (var box in _instantiatedBoxes)
+        {
+            if (box != null)
+            {
+                MeshFilter meshFilter = box.GetComponentInChildren<MeshFilter>();
+                if (meshFilter != null && meshFilter.sharedMesh != null)
+                {
+                    Vector3 localBoxSize = Vector3.Scale(meshFilter.sharedMesh.bounds.size, box.transform.localScale);
+
+                    // Update position tracking (simplified version of PlaceResourceBox logic)
+                    if (_nextPosition.x + localBoxSize.x > stackingVolume.center.x + stackingVolume.size.x / 2)
+                    {
+                        _nextPosition.x = stackingVolume.center.x - stackingVolume.size.x / 2;
+                        _nextPosition.z += _currentRowMaxDepth + spacing.z;
+                        _currentRowMaxDepth = 0f;
+                    }
+
+                    if (_nextPosition.z + localBoxSize.z > stackingVolume.center.z + stackingVolume.size.z / 2)
+                    {
+                        _nextPosition.x = stackingVolume.center.x - stackingVolume.size.x / 2;
+                        _nextPosition.z = stackingVolume.center.z - stackingVolume.size.z / 2;
+                        _nextPosition.y += _currentLayerMaxHeight + spacing.y;
+                        _currentLayerMaxHeight = 0f;
+                    }
+
+                    _currentRowMaxDepth = Mathf.Max(_currentRowMaxDepth, localBoxSize.z);
+                    _currentLayerMaxHeight = Mathf.Max(_currentLayerMaxHeight, localBoxSize.y);
+                    _nextPosition.x += localBoxSize.x + spacing.x;
+                }
+            }
         }
     }
 

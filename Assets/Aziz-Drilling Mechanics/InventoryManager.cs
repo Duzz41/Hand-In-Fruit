@@ -5,7 +5,6 @@ using UnityEngine;
 public class InventoryManager : MonoBehaviour
 {
     private static InventoryManager _instance;
-
     public static InventoryManager Instance
     {
         get
@@ -24,9 +23,12 @@ public class InventoryManager : MonoBehaviour
     }
 
     public Dictionary<string, int> inventory = new Dictionary<string, int>();
-    public bool showCollectionSphere=true;
+    public bool showCollectionSphere = true;
 
+    // Events
     public static event Action<string, int> OnResourceCollected;
+    public static event Action<string, int> OnResourceUsed;
+    public static event Action OnInventoryCleared;
 
     private void Awake()
     {
@@ -44,6 +46,8 @@ public class InventoryManager : MonoBehaviour
         if (_instance == this)
         {
             OnResourceCollected = null;
+            OnResourceUsed = null;
+            OnInventoryCleared = null;
         }
     }
 
@@ -77,6 +81,9 @@ public class InventoryManager : MonoBehaviour
             {
                 inventory.Remove(resourceType);
             }
+
+            // Invoke the event after successfully using the resource
+            OnResourceUsed?.Invoke(resourceType, amount);
             Debug.Log($"Used {amount} {resourceType}! Remaining: {GetResourceCount(resourceType)}");
             return true;
         }
@@ -97,7 +104,6 @@ public class InventoryManager : MonoBehaviour
             Debug.Log("Inventory is empty");
             return;
         }
-
         foreach (var item in inventory)
         {
             Debug.Log($"{item.Key}: {item.Value}");
@@ -109,6 +115,7 @@ public class InventoryManager : MonoBehaviour
     public void ClearInventory()
     {
         inventory.Clear();
+        OnInventoryCleared?.Invoke();
         Debug.Log("Inventory cleared!");
     }
 
