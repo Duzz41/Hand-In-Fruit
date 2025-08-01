@@ -124,8 +124,8 @@ public class PlayerController : MonoBehaviour
         sfxSource.spatialBlend = 0f;
 
         // Ses kaynaklarını SoundManager'a kayıt et
-        SoundManager.instance.RegisterAudioSource(engineSource);
-        SoundManager.instance.RegisterAudioSource(sfxSource);
+       // SoundManager.instance.RegisterAudioSource(engineSource);
+     //   SoundManager.instance.RegisterAudioSource(sfxSource);
     }
 
     void InitializeComponents()
