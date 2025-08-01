@@ -9,7 +9,7 @@ public class UpgradeTrigger : MonoBehaviour
     public GameObject targetUpgradePanel;
 
     [Tooltip("Bu tetikleyiciyi aktif edecek GameObject'in Tag'i (genellikle 'PlayerVehicle').")]
-    public string playerTag = "PlayerVehicle";
+    public string playerTag = "Player";
 
     // Oyuncu yaklaþtýðýnda çaðrýlacak metot (örneðin UIManager.Instance.OpenDrillUpgradePopup)
     public UnityEvent onPlayerEnter;

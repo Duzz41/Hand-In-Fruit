@@ -26,7 +26,7 @@ public class SellAreaHandler : MonoBehaviour
     // === Satýþ Alaný Ayarlarý ===
     [Header("Sell Area Settings")]
     [Tooltip("Satýþ alanýný tetikleyecek oyuncu aracýnýn GameObject Tag'i.")]
-    public string playerVehicleTag = "PlayerVehicle";
+    public string PlayerTag = "Player";
 
     // === Pop-up Metin Formatlarý ve Varsayýlan Deðerler ===
     [Header("Pop-up Display Text Formatting")]
@@ -78,9 +78,9 @@ public class SellAreaHandler : MonoBehaviour
     /// <param name="other">Tetikleyiciye giren Collider bileþeni.</param>
     void OnTriggerEnter(Collider other)
     {
-        // Giren objenin belirlenen "playerVehicleTag" etiketine sahip olup olmadýðýný kontrol et
+        // Giren objenin belirlenen "PlayerTag" etiketine sahip olup olmadýðýný kontrol et
         // ve UpgradeManager instance'ýnýn var olduðundan emin ol.
-        if (other.CompareTag(playerVehicleTag) && UpgradeManager.Instance != null)
+        if (other.CompareTag(PlayerTag) && UpgradeManager.Instance != null)
         {
             Debug.Log($"Oyuncu Aracý ({other.gameObject.name}) Satýþ Alanýna Girdi. Madenler Satýlýyor...", this);
 
