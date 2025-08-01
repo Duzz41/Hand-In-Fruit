@@ -1,6 +1,6 @@
 using UnityEngine;
-using UnityEngine.UI; // Image sýnýfý için gerekli
-using TMPro; // TextMeshPro için gerekli
+using UnityEngine.UI; // Image bileþeni için gerekli
+using TMPro; // TextMeshPro bileþeni için gerekli
 
 public class UpgradeManager : MonoBehaviour
 {
@@ -20,13 +20,13 @@ public class UpgradeManager : MonoBehaviour
 
     [Header("Vehicle Fuel Settings")]
     [Tooltip("Aracýn þu anki benzin miktarý.")]
-    public float currentFuel = 100f; // float kullandým çünkü benzin ondalýklý olabilir
+    public float currentFuel = 100f;
 
     [Tooltip("Aracýn maksimum benzin kapasitesi.")]
-    public float maxFuelCapacity = 100f; // Aracýn maksimum benzin kapasitesi
+    public float maxFuelCapacity = 100f;
 
     [Tooltip("Benzin tüketim hýzý (birim zamanda ne kadar benzin harcandýðý).")]
-    public float fuelConsumptionRate = 1f; // Örnek: Saniyede 1 birim benzin
+    public float fuelConsumptionRate = 1f;
 
     [Header("Mine & Inventory Settings")]
     [Tooltip("Oyuncunun envanterindeki toplanmýþ maden sayýsý.")]
@@ -35,15 +35,10 @@ public class UpgradeManager : MonoBehaviour
     [Tooltip("Her bir madenin satýþ deðeri.")]
     public int mineValue = 10;
 
-    [Header("UI References")]
-    [Tooltip("Oyundaki global para göstergesi TextMeshPro objesi. Yoksa boþ býrakýlabilir.")]
-    public TMP_Text globalMoneyText;
-
-    [Tooltip("Benzin doldurma çubuðunun dolu kýsmý (Image bileþeni).")]
-    public Image fuelBarFillImage;
-
-    [Tooltip("Benzin miktarýný sayýsal olarak gösteren TextMeshPro objesi.")]
-    public TMP_Text fuelAmountText;
+    // UI referanslarý artýk UIManager tarafýndan atanacak ve private olarak tutulacak
+    private TMP_Text globalMoneyText;
+    private Image fuelBarFillImage;
+    private TMP_Text fuelAmountText;
 
     void Awake()
     {
@@ -51,32 +46,30 @@ public class UpgradeManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
-            // Bu objeyi sahneler arasý koru. Genellikle GameManager veya ana sistemler için kullanýlýr.
             DontDestroyOnLoad(gameObject);
         }
         else
         {
-            // Eðer zaten bir instance varsa, bu yeni objeyi yok et ve yok etmeden önce hata mesajý ver.
             Debug.LogWarning("Sahneye birden fazla UpgradeManager eklenmeye çalýþýldý! Mevcut olan korunacak, yeni olan yok ediliyor.", this);
             Destroy(gameObject);
         }
     }
 
-    void Start()
+    // === YENÝ METOT: UIManager'ýn UI referanslarýný atamasý için ===
+    /// <summary>
+    /// UIManager tarafýndan çaðrýlarak global UI referanslarýnýn UpgradeManager'a atanmasýný saðlar.
+    /// </summary>
+    public void SetUIRefs(TMP_Text moneyText, Image fuelBarImage, TMP_Text fuelText)
     {
-        // Oyun baþladýðýnda UI'larý güncelle
-        UpdateGlobalMoneyUI();
-        UpdateFuelUI();
+        globalMoneyText = moneyText;
+        fuelBarFillImage = fuelBarImage;
+        fuelAmountText = fuelText;
     }
 
-    // UPDATE METODU: Benzin tüketimi için (örnek)
     void Update()
     {
-        // Sadece oyun oynanýrken (oyun duraklatýlmamýþsa, araç hareket ediyorsa vb.) benzin tüketimi
-        // if (Time.timeScale > 0 && IsVehicleMoving()) // IsVehicleMoving kendi aracýnýzýn hareketini kontrol eden bir metot olabilir
-        // {
+        // Benzin tüketimi devam ediyor
         ConsumeFuel(fuelConsumptionRate * Time.deltaTime);
-        // }
     }
 
     /// <summary>
@@ -125,8 +118,8 @@ public class UpgradeManager : MonoBehaviour
     public int SellAllMines()
     {
         int earned = collectedMinesCount * mineValue;
-        AddMoney(earned); // Kazanýlan parayý oyuncunun bakiyesine ekle
-        collectedMinesCount = 0; // Madenleri sýfýrla
+        AddMoney(earned);
+        collectedMinesCount = 0;
         Debug.Log($"Tüm madenler satýldý. Kazanýlan: {earned} para.");
         return earned;
     }
@@ -137,14 +130,13 @@ public class UpgradeManager : MonoBehaviour
     /// </summary>
     public void UpgradeDrillPower()
     {
-        // Örnek: Maliyet seviyeye göre artar
-        int cost = drillPowerLevel * 100; // Her seviye için maliyet artýþý
+        int cost = drillPowerLevel * 100;
         if (SpendMoney(cost))
         {
             drillPowerLevel++;
             Debug.Log($"Delme Gücü Seviye {drillPowerLevel}'e yükseltildi.");
-            // Burada Upgrade UI'ýný da güncelleyecek bir metot çaðrýlabilir.
-            // Örneðin: UIManager.Instance.UpdateUpgradeScreen();
+            // UIManager'daki UI güncelleme metodunu çaðýr (varsayýmsal)
+            // UIManager.Instance?.UpdateDrillUpgradeUI(); 
         }
     }
 
@@ -154,12 +146,11 @@ public class UpgradeManager : MonoBehaviour
     /// <param name="activate">X-Ray görüþünün aktif olup olmayacaðý.</param>
     public void ToggleXRayVision(bool activate)
     {
-        // X-Ray görüþünün maliyeti veya bir kilit sistemi olabilir.
-        // if (SpendMoney(xrayCost) && !hasXRayVision)
-        // {
+        // Maliyet ve kontrol eklenebilir
+        // if (!hasXRayVision && SpendMoney(xrayUpgradeCost)) {
         hasXRayVision = activate;
         Debug.Log($"X-Ray Görüþ: {(hasXRayVision ? "Aktif" : "Deaktif")}");
-        // Burada X-Ray görsel efektini açýp kapatan veya güncelleyen kodu çaðýrabilirsiniz.
+        // UIManager.Instance?.UpdateXRayUpgradeUI();
         // }
     }
 
@@ -173,11 +164,9 @@ public class UpgradeManager : MonoBehaviour
         if (currentFuel <= 0)
         {
             currentFuel = 0;
-            Debug.LogWarning("Benzin bitti! Araç durdu veya hasar alýyor.");
-            // Burada aracýn durmasý, hasar almasý veya oyunu bitirme gibi
-            // benzin bitince olacak olaylarý tetikleyebilirsiniz.
+            Debug.LogWarning("Benzin bitti! Araç durdu.");
         }
-        UpdateFuelUI(); // UI güncellemesini çaðýr
+        UpdateFuelUI();
     }
 
     /// <summary>
@@ -191,7 +180,7 @@ public class UpgradeManager : MonoBehaviour
         {
             currentFuel = maxFuelCapacity;
         }
-        UpdateFuelUI(); // UI güncellemesini çaðýr
+        UpdateFuelUI();
         Debug.Log($"Benzin Eklendi: {amount}. Güncel Benzin: {currentFuel}");
     }
 
@@ -201,26 +190,24 @@ public class UpgradeManager : MonoBehaviour
     /// <param name="newCapacity">Yeni maksimum benzin kapasitesi.</param>
     public void UpgradeMaxFuelCapacity(float newCapacity)
     {
-        // Örnek: Upgrade maliyetini kontrol et
+        // Maliyet ve kontrol eklenebilir
         // int upgradeCost = CalculateFuelCapacityUpgradeCost();
         // if (SpendMoney(upgradeCost)) {
         maxFuelCapacity = newCapacity;
-        // Eðer currentFuel yeni kapasitenin üstündeyse, yeni kapasiteye eþitle
         if (currentFuel > maxFuelCapacity)
         {
             currentFuel = maxFuelCapacity;
         }
-        UpdateFuelUI(); // UI güncellemesini çaðýr
+        UpdateFuelUI();
         Debug.Log($"Maksimum Benzin Kapasitesi {maxFuelCapacity}'e yükseltildi.");
+        // UIManager.Instance?.UpdateFuelUpgradeUI();
         // }
     }
 
 
     // UI GÜNCELLEME METOTLARI
-    /// <summary>
-    /// Global para göstergesi UI TextMeshPro'sunu günceller.
-    /// </summary>
-    void UpdateGlobalMoneyUI()
+    // Bu metotlar private referanslarý kullanarak UI'ý günceller.
+    public void UpdateGlobalMoneyUI()
     {
         if (globalMoneyText != null)
         {
@@ -228,10 +215,7 @@ public class UpgradeManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Hem benzin çubuðunu hem de sayýsal benzin metnini günceller.
-    /// </summary>
-    void UpdateFuelUI()
+    public void UpdateFuelUI()
     {
         float fuelPercentage = currentFuel / maxFuelCapacity;
 
@@ -242,11 +226,7 @@ public class UpgradeManager : MonoBehaviour
 
         if (fuelAmountText != null)
         {
-            // Sayýsal deðeri göster (örn: 75/100)
-            fuelAmountText.text = $"Benzin: {currentFuel:F0}/{maxFuelCapacity:F0}"; // F0: Ondalýk basamak yok
-
-            // Veya sadece yüzde olarak:
-            // fuelAmountText.text = $"Benzin: {fuelPercentage * 100:F0}%";
+            fuelAmountText.text = $"Benzin: {currentFuel:F0}/{maxFuelCapacity:F0}";
         }
     }
 }
