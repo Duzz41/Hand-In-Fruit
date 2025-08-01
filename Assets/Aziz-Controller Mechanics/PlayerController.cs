@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
@@ -74,6 +75,16 @@ public class PlayerController : MonoBehaviour
     private Vector3 preCollisionVelocity;
     private float momentumPreservation = 0.7f;
 
+    [Header("Audio Settings")]
+    [SerializeField]
+    private AudioClip engineSound;
+
+    [SerializeField]
+    private AudioClip drillSound;
+
+    private AudioSource engineSource;
+    private AudioSource sfxSource;
+
     // Debug variables
     private float lastDebugTime;
 
@@ -85,6 +96,7 @@ public class PlayerController : MonoBehaviour
         InitializeComponents();
         SetupPhysics();
         BackupOriginalPhysicsValues();
+        // Ses kaynaklarını oluştur
 
         // Find virtual joystick if using it
         if (useVirtualJoystick)
@@ -94,6 +106,26 @@ public class PlayerController : MonoBehaviour
 
         // Initialize fuel system integration
         InitializeFuelSystem();
+        SetupAudioSource();
+    }
+
+    void SetupAudioSource()
+    {
+        engineSource = gameObject.GetComponent<AudioSource>();
+        engineSource.clip = engineSound;
+        engineSource.loop = true;
+        engineSource.playOnAwake = false;
+        engineSource.spatialBlend = 0f; // 2D ses
+
+        sfxSource = gameObject.GetComponent<AudioSource>();
+
+        sfxSource.loop = false;
+        sfxSource.playOnAwake = false;
+        sfxSource.spatialBlend = 0f;
+
+        // Ses kaynaklarını SoundManager'a kayıt et
+        SoundManager.instance.RegisterAudioSource(engineSource);
+        SoundManager.instance.RegisterAudioSource(sfxSource);
     }
 
     void InitializeComponents()
@@ -154,6 +186,7 @@ public class PlayerController : MonoBehaviour
         CalculateMovement();
         HandleCollisionRecovery();
         MonitorPhysicsValues();
+        HandleEngineSound();
 
         // Debug velocity logging
         if (debugVelocity && Time.time - lastDebugTime >= debugLogInterval)
@@ -178,6 +211,18 @@ public class PlayerController : MonoBehaviour
         }
 
         LimitVelocity();
+    }
+
+    void HandleEngineSound()
+    {
+        if (IsMoving() && !engineSource.isPlaying && CanMove())
+        {
+            SoundCallManager.instance.PlaySound("EngineSound");
+        }
+        else if ((!IsMoving() || !CanMove()) && engineSource.isPlaying)
+        {
+            SoundCallManager.instance.StopSound("EngineSound");
+        }
     }
 
     void HandleInput()
@@ -421,6 +466,14 @@ public class PlayerController : MonoBehaviour
             fuelSystem.OnWallCollision(collision);
         }
 
+        // SFX: Çarpışma sesi sadece belirli kuvvetin üstünde olunca çalsın
+        // SFX: Çarpışma sesi sadece belirli kuvvetin üstünde olunca çalsın
+        if (collision.relativeVelocity.magnitude > 2f)
+        {
+            SoundCallManager.instance.PlayOneShot("SFXSound", drillSound);
+        }
+
+        // Eğer otomatik kurtarma açıksa ve çarpışma yeterince güçlüyse
         if (
             autoRecoverFromCollision
             && collision.relativeVelocity.magnitude > minCollisionForceForRecovery
@@ -528,11 +581,6 @@ public class PlayerController : MonoBehaviour
     public void SetMovementEnabled(bool enabled)
     {
         canMove = enabled;
-        if (!enabled)
-        {
-            // Stop immediately when movement is disabled
-            currentSpeed = 0f;
-        }
     }
 
     // Cleanup

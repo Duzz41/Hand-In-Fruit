@@ -1,71 +1,71 @@
 using UnityEngine;
-using TMPro; // TextMeshPro UI bileþenleri için gerekli
+using TMPro; // TextMeshPro UI bileï¿½enleri iï¿½in gerekli
 
 public class SellAreaHandler : MonoBehaviour
 {
-    // === UI Element Referanslarý ===
+    // === UI Element Referanslarï¿½ ===
     [Header("UI Element References")]
-    [Tooltip("Satýþ pop-up'ýnýn ana GameObject'i (Panel).")]
+    [Tooltip("Satï¿½ï¿½ pop-up'ï¿½nï¿½n ana GameObject'i (Panel).")]
     public GameObject sellPopupPanel;
 
-    [Tooltip("Pop-up üzerindeki baþlýk metni (örn: 'Madenler Satýldý!').")]
+    [Tooltip("Pop-up ï¿½zerindeki baï¿½lï¿½k metni (ï¿½rn: 'Madenler Satï¿½ldï¿½!').")]
     public TMP_Text titleText;
 
-    [Tooltip("Pop-up üzerindeki kazanýlan para miktarýný gösteren metin.")]
+    [Tooltip("Pop-up ï¿½zerindeki kazanï¿½lan para miktarï¿½nï¿½ gï¿½steren metin.")]
     public TMP_Text moneyEarnedText;
 
-    [Tooltip("Pop-up üzerindeki aracýn delme gücü seviyesini gösteren metin.")]
+    [Tooltip("Pop-up ï¿½zerindeki aracï¿½n delme gï¿½cï¿½ seviyesini gï¿½steren metin.")]
     public TMP_Text drillPowerText;
 
-    [Tooltip("Pop-up üzerindeki aracýn X-Ray görüþ özelliðinin durumunu gösteren metin.")]
+    [Tooltip("Pop-up ï¿½zerindeki aracï¿½n X-Ray gï¿½rï¿½ï¿½ ï¿½zelliï¿½inin durumunu gï¿½steren metin.")]
     public TMP_Text xRayVisionText;
 
-    [Tooltip("Pop-up'ý kapatma butonunun metin bileþeni (varsa).")]
+    [Tooltip("Pop-up'ï¿½ kapatma butonunun metin bileï¿½eni (varsa).")]
     public TMP_Text closeButtonText;
 
-    // === Satýþ Alaný Ayarlarý ===
+    // === Satï¿½ï¿½ Alanï¿½ Ayarlarï¿½ ===
     [Header("Sell Area Settings")]
-    [Tooltip("Satýþ alanýný tetikleyecek oyuncu aracýnýn GameObject Tag'i.")]
-    public string PlayerTag = "Player";
+    [Tooltip("Satï¿½ï¿½ alanï¿½nï¿½ tetikleyecek oyuncu aracï¿½nï¿½n GameObject Tag'i.")]
+    public string playerVehicleTag = "PlayerVehicle";
 
-    // === Pop-up Metin Formatlarý ve Varsayýlan Deðerler ===
+    // === Pop-up Metin Formatlarï¿½ ve Varsayï¿½lan Deï¿½erler ===
     [Header("Pop-up Display Text Formatting")]
-    [Tooltip("Kazanýlan para metni için format dizesi. {0} kazanýlan parayý temsil eder.")]
-    public string moneyFormatString = "Kazanýlan Para: {0} Altýn";
+    [Tooltip("Kazanï¿½lan para metni iï¿½in format dizesi. {0} kazanï¿½lan parayï¿½ temsil eder.")]
+    public string moneyFormatString = "Kazanï¿½lan Para: {0} Altï¿½n";
 
-    [Tooltip("Delme gücü metni için format dizesi. {0} delme gücü seviyesini temsil eder.")]
-    public string drillPowerFormatString = "Delme Gücü: Seviye {0}";
+    [Tooltip("Delme gï¿½cï¿½ metni iï¿½in format dizesi. {0} delme gï¿½cï¿½ seviyesini temsil eder.")]
+    public string drillPowerFormatString = "Delme Gï¿½cï¿½: Seviye {0}";
 
-    [Tooltip("X-Ray görüþ metni için format dizesi. {0} X-Ray durumunu ('Aktif'/'Deaktif') temsil eder.")]
-    public string xRayVisionFormatString = "X-Ray Görüþ: {0}";
+    [Tooltip("X-Ray gï¿½rï¿½ï¿½ metni iï¿½in format dizesi. {0} X-Ray durumunu ('Aktif'/'Deaktif') temsil eder.")]
+    public string xRayVisionFormatString = "X-Ray Gï¿½rï¿½ï¿½: {0}";
 
-    [Tooltip("Pop-up'ýn baþlýk metni.")]
-    public string popupTitleString = "Madenler Satýldý!";
+    [Tooltip("Pop-up'ï¿½n baï¿½lï¿½k metni.")]
+    public string popupTitleString = "Madenler Satï¿½ldï¿½!";
 
-    [Tooltip("Kapatma butonunun varsayýlan metni.")]
+    [Tooltip("Kapatma butonunun varsayï¿½lan metni.")]
     public string closeButtonDefaultText = "Tamam";
 
 
     void Start()
     {
-        // UpgradeManager instance'ýnýn mevcut olup olmadýðýný kontrol et
-        // Bu script, UpgradeManager'dan sonra çalýþtýðýndan emin olmak için önemlidir.
-        // Genellikle Script Execution Order ayarlarýndan kontrol edilir.
+        // UpgradeManager instance'ï¿½nï¿½n mevcut olup olmadï¿½ï¿½ï¿½nï¿½ kontrol et
+        // Bu script, UpgradeManager'dan sonra ï¿½alï¿½ï¿½tï¿½ï¿½ï¿½ndan emin olmak iï¿½in ï¿½nemlidir.
+        // Genellikle Script Execution Order ayarlarï¿½ndan kontrol edilir.
         if (UpgradeManager.Instance == null)
         {
-            Debug.LogError("UpgradeManager.Instance bulunamadý! Lütfen sahnede bir 'UpgradeManager' GameObject'i olduðundan ve 'UpgradeManager.cs' script'inin ona eklendiðinden emin olun. Ayrýca Script Execution Order ayarlarýnýzý kontrol edin.", this);
-            // Hata durumunda script'i devre dýþý býrakmak faydalý olabilir
+            Debug.LogError("UpgradeManager.Instance bulunamadï¿½! Lï¿½tfen sahnede bir 'UpgradeManager' GameObject'i olduï¿½undan ve 'UpgradeManager.cs' script'inin ona eklendiï¿½inden emin olun. Ayrï¿½ca Script Execution Order ayarlarï¿½nï¿½zï¿½ kontrol edin.", this);
+            // Hata durumunda script'i devre dï¿½ï¿½ï¿½ bï¿½rakmak faydalï¿½ olabilir
             // enabled = false; 
-            return; // Metottan çýk
+            return; // Metottan ï¿½ï¿½k
         }
 
-        // Oyun baþladýðýnda satýþ pop-up panelini gizle
+        // Oyun baï¿½ladï¿½ï¿½ï¿½nda satï¿½ï¿½ pop-up panelini gizle
         if (sellPopupPanel != null)
         {
             sellPopupPanel.SetActive(false);
         }
 
-        // Kapatma butonunun metnini ayarla (eðer bir metin bileþeni atanmýþsa)
+        // Kapatma butonunun metnini ayarla (eï¿½er bir metin bileï¿½eni atanmï¿½ï¿½sa)
         if (closeButtonText != null)
         {
             closeButtonText.text = closeButtonDefaultText;
@@ -73,47 +73,47 @@ public class SellAreaHandler : MonoBehaviour
     }
 
     /// <summary>
-    /// Bir baþka Collider bu tetikleyiciye girdiðinde çaðrýlýr.
+    /// Bir baï¿½ka Collider bu tetikleyiciye girdiï¿½inde ï¿½aï¿½rï¿½lï¿½r.
     /// </summary>
-    /// <param name="other">Tetikleyiciye giren Collider bileþeni.</param>
+    /// <param name="other">Tetikleyiciye giren Collider bileï¿½eni.</param>
     void OnTriggerEnter(Collider other)
     {
-        // Giren objenin belirlenen "PlayerTag" etiketine sahip olup olmadýðýný kontrol et
-        // ve UpgradeManager instance'ýnýn var olduðundan emin ol.
-        if (other.CompareTag(PlayerTag) && UpgradeManager.Instance != null)
+        // Giren objenin belirlenen "playerVehicleTag" etiketine sahip olup olmadï¿½ï¿½ï¿½nï¿½ kontrol et
+        // ve UpgradeManager instance'ï¿½nï¿½n var olduï¿½undan emin ol.
+        if (other.CompareTag(playerVehicleTag) && UpgradeManager.Instance != null)
         {
-            Debug.Log($"Oyuncu Aracý ({other.gameObject.name}) Satýþ Alanýna Girdi. Madenler Satýlýyor...", this);
+            Debug.Log($"Oyuncu Aracï¿½ ({other.gameObject.name}) Satï¿½ï¿½ Alanï¿½na Girdi. Madenler Satï¿½lï¿½yor...", this);
 
-            // UpgradeManager üzerinden toplanmýþ madenleri sat ve kazanýlan parayý al
+            // UpgradeManager ï¿½zerinden toplanmï¿½ï¿½ madenleri sat ve kazanï¿½lan parayï¿½ al
             int earnedMoney = UpgradeManager.Instance.SellAllMines();
 
-            // Pop-up'taki baþlýk metnini ayarla
+            // Pop-up'taki baï¿½lï¿½k metnini ayarla
             if (titleText != null)
             {
                 titleText.text = popupTitleString;
             }
 
-            // Kazanýlan para metnini formatlayarak güncelle
+            // Kazanï¿½lan para metnini formatlayarak gï¿½ncelle
             if (moneyEarnedText != null)
             {
                 moneyEarnedText.text = string.Format(moneyFormatString, earnedMoney);
             }
 
-            // Aracýn güncel delme gücü seviyesini formatlayarak güncelle
+            // Aracï¿½n gï¿½ncel delme gï¿½cï¿½ seviyesini formatlayarak gï¿½ncelle
             if (drillPowerText != null)
             {
                 drillPowerText.text = string.Format(drillPowerFormatString, UpgradeManager.Instance.drillPowerLevel);
             }
 
-            // Aracýn X-Ray görüþ durumunu formatlayarak güncelle
+            // Aracï¿½n X-Ray gï¿½rï¿½ï¿½ durumunu formatlayarak gï¿½ncelle
             if (xRayVisionText != null)
             {
-                // X-Ray durumu için "Aktif" veya "Deaktif" metnini belirle
+                // X-Ray durumu iï¿½in "Aktif" veya "Deaktif" metnini belirle
                 string xRayStatus = UpgradeManager.Instance.hasXRayVision ? "Aktif" : "Deaktif";
                 xRayVisionText.text = string.Format(xRayVisionFormatString, xRayStatus);
             }
 
-            // Satýþ pop-up panelini aktif hale getirerek göster
+            // Satï¿½ï¿½ pop-up panelini aktif hale getirerek gï¿½ster
             if (sellPopupPanel != null)
             {
                 sellPopupPanel.SetActive(true);
@@ -122,15 +122,15 @@ public class SellAreaHandler : MonoBehaviour
     }
 
     /// <summary>
-    /// Satýþ pop-up'ýný kapatmak için buton tarafýndan çaðrýlýr.
+    /// Satï¿½ï¿½ pop-up'ï¿½nï¿½ kapatmak iï¿½in buton tarafï¿½ndan ï¿½aï¿½rï¿½lï¿½r.
     /// </summary>
     public void CloseSellPopup()
     {
-        // Satýþ pop-up panelini deaktif hale getirerek gizle
+        // Satï¿½ï¿½ pop-up panelini deaktif hale getirerek gizle
         if (sellPopupPanel != null)
         {
             sellPopupPanel.SetActive(false);
-            Debug.Log("Satýþ Pop-up'ý kapatýldý.");
+            Debug.Log("Satï¿½ï¿½ Pop-up'ï¿½ kapatï¿½ldï¿½.");
         }
     }
 }

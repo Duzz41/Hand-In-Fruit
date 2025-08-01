@@ -936,7 +936,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   triggerOptions:
     triggerType: 0
-    minimumCollisionForce: 0
+    minimumCollisionForce: 150
     filterCollisionsByTag: 1
     triggerAllowedTags:
     - Player
@@ -953,7 +953,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 387c068270f495b49b072b9cde014d89, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceType: Rock
+  resourceType: Stone
   resourceValue: 1
   debrisLifetime: 5
   collectionRadius: 3
@@ -962,6 +962,8 @@ MonoBehaviour:
     m_Bits: 256
   collectionDelay: 0.3
   playerTransform: {fileID: 0}
+  minRandomForceAmount: 3
+  maxRandomForceAmount: 6
 --- !u!54 &2523104549900715564
 Rigidbody:
   m_ObjectHideFlags: 0

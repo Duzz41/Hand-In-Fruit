@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using DG.Tweening;
 using UnityEngine;
 
 public class FogOfWarManager : MonoBehaviour
@@ -29,11 +30,15 @@ public class FogOfWarManager : MonoBehaviour
     public float xrayDuration = 2f;
     public float xrayCooldown = 10f;
 
+    [Range(0.01f, 0.2f)]
+    public float waveSpeed = 0.05f; // Dalga hızı (mesafe başına gecikme)
+
     private bool xrayOnCooldown = false;
     private bool isXrayActive = false;
 
     private HashSet<HexTile> currentlyVisibleTiles = new HashSet<HexTile>();
     private HashSet<HexTile> revealedTiles = new HashSet<HexTile>();
+    private HashSet<HexTile> xrayActiveTiles = new HashSet<HexTile>();
 
     void Start()
     {
@@ -45,14 +50,7 @@ public class FogOfWarManager : MonoBehaviour
         if (player == null)
             return;
 
-        if (Input.GetKeyDown(KeyCode.Q) && !xrayOnCooldown)
-        {
-            StartCoroutine(PerformXRayWaveScan());
-        }
-
-        CleanupDestroyedTiles();
-
-        // XRay aktifken normal vision'ı durdur
+        // X-Ray aktifken normal vision'ı durdur
         if (isXrayActive)
             return;
 
@@ -70,10 +68,24 @@ public class FogOfWarManager : MonoBehaviour
             {
                 newVisibleTiles.Add(tile);
 
+                // Eğer tile daha önce görünür değilse, reveal et
                 if (!currentlyVisibleTiles.Contains(tile))
                 {
                     tile.RevealTile();
                     revealedTiles.Add(tile);
+                }
+                else
+                {
+                    // Eğer tile zaten görünürse ve X-Ray modundaysa, normal materyali geri yükle
+                    if (tile.IsInXRayMode)
+                    {
+                        // Normal görünüm alanına girdiğinde X-Ray modunu kapat
+                        float distance = Vector3.Distance(player.position, tile.transform.position);
+                        if (distance < revealRadius)
+                        {
+                            tile.SetXRayMode(false); // X-Ray modunu kapat
+                        }
+                    }
                 }
             }
         }
@@ -111,62 +123,117 @@ public class FogOfWarManager : MonoBehaviour
     private IEnumerator PerformXRayWaveScan()
     {
         xrayOnCooldown = true;
+        isXrayActive = true;
 
         List<XRayTile> tileList = new List<XRayTile>();
 
+        // X-Ray menzilindeki tüm tile'ları bul
         Collider[] hits = Physics.OverlapSphere(player.position, xrayRadius);
         foreach (var hit in hits)
         {
             HexTile tile = hit.GetComponentInParent<HexTile>();
-            if (tile != null)
+            if (tile != null && !IsDestroyed(tile)) // Sadece geçerli tile'lar
             {
-                Vector3 toTile = (tile.transform.position - player.position).normalized;
-                float angle = Vector3.Angle(player.forward, toTile);
-                if (angle < xrayAngle * 0.5f)
+                float distance = Vector3.Distance(player.position, tile.transform.position);
+                float delay = distance * waveSpeed; // Dalga hızına göre gecikme
+
+                if (tile.hasValuableResource) // Eğer değerli kaynak varsa
                 {
-                    float distance = Vector3.Distance(player.position, tile.transform.position);
-                    float delay = distance * 0.05f; // Açılma için mesafeye göre delay
                     tileList.Add(new XRayTile(tile, delay));
+                }
+                else // Değerli kaynak yoksa hemen gizle
+                {
+                    StartCoroutine(DeactivateXRayWithDelay(tile, 0f)); // Hemen gizle
                 }
             }
         }
 
-        // Açılma için delay küçükten büyüğe sırala
+        // Açılma için delay küçükten büyüğe sırala (dalgalı açılım)
         tileList.Sort((a, b) => a.delay.CompareTo(b.delay));
 
-        // Açılma dalgası
+        Debug.Log($"X-Ray dalga taraması başlıyor - {tileList.Count} değerli tile bulundu");
+
+        // X-Ray açılma dalgası
         foreach (XRayTile xrayTile in tileList)
         {
-            StartCoroutine(RevealWithDelay(xrayTile.tile, xrayTile.delay));
+            StartCoroutine(ActivateXRayWithDelay(xrayTile.tile, xrayTile.delay));
         }
 
-        // Açılma süresi + en son delay kadar bekle
-        float totalDuration = tileList.Count > 0 ? tileList[^1].delay + xrayDuration : xrayDuration;
-        yield return new WaitForSeconds(totalDuration);
+        // X-Ray süresince bekle
+        float totalOpenDuration = tileList.Count > 0 ? tileList[^1].delay + 0.1f : 0.1f;
+        yield return new WaitForSeconds(totalOpenDuration + xrayDuration);
 
-        // Kapanma dalgası: ters sırada, ters gecikme ile başlat
-        float closeDelayStep = 0.05f; // Kapanma gecikme aralığı (isteğe göre ayarla)
+        Debug.Log("X-Ray kapanma dalgası başlıyor");
 
-        for (int i = 0; i < tileList.Count; i++)
+        // X-Ray kapanma dalgası: değerli kaynaklar için
+        foreach (XRayTile xrayTile in tileList)
         {
-            int reverseIndex = tileList.Count - 1 - i;
-            XRayTile xrayTile = tileList[reverseIndex];
-
-            float reverseDelay = i * closeDelayStep; // ters sıra ile artan delay
-
-            StartCoroutine(HideWithDelay(xrayTile.tile, reverseDelay));
+            StartCoroutine(DeactivateXRayWithDelay(xrayTile.tile, xrayDuration)); // Değerli kaynaklar için belirli bir süre açık kal
         }
 
-        // Kapanma süresi (toplam gecikme)
-        float closeTotalDuration = tileList.Count * closeDelayStep + xrayDuration;
-        yield return new WaitForSeconds(closeTotalDuration);
+        // Kapanma süresince bekle
+        yield return new WaitForSeconds(xrayDuration);
 
-        // Cooldown bekle, kapanma ve açılma süresi toplamı çıkarıldı
-        float cooldownWait = xrayCooldown - totalDuration - closeTotalDuration;
-        if (cooldownWait > 0)
-            yield return new WaitForSeconds(cooldownWait);
+        isXrayActive = false;
+        xrayActiveTiles.Clear();
+
+        Debug.Log("X-Ray taraması tamamlandı");
+
+        // Kalan cooldown süresini bekle
+        float remainingCooldown = xrayCooldown - totalOpenDuration - xrayDuration;
+        if (remainingCooldown > 0)
+            yield return new WaitForSeconds(remainingCooldown);
 
         xrayOnCooldown = false;
+    }
+
+    private IEnumerator ActivateXRayWithDelay(HexTile tile, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        if (tile != null && !IsDestroyed(tile))
+        {
+            // X-Ray materyalini uygula
+            tile.SetXRayMode(true);
+            xrayActiveTiles.Add(tile);
+
+            // DoTween ile yukarı doğru hafif hareket ettir
+            float moveAmount = 0.2f; // Yukarı doğru hareket miktarı
+            float moveDuration = 0.5f; // Hareket süresi
+
+            // Objenin mevcut pozisyonunu al
+            Vector3 originalPosition = tile.transform.position;
+
+            // Yukarı doğru hareket ettir
+            tile.transform.DOMoveY(originalPosition.y + moveAmount, moveDuration)
+                .SetEase(Ease.OutSine) // Hareketin daha doğal görünmesi için easing
+                .OnComplete(() =>
+                {
+                    // Hareket tamamlandığında objeyi eski pozisyona döndür
+                    tile.transform.DOMoveY(originalPosition.y, moveDuration).SetEase(Ease.InSine);
+                });
+        }
+    }
+
+    private IEnumerator DeactivateXRayWithDelay(HexTile tile, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        if (tile != null && !IsDestroyed(tile))
+        {
+            tile.SetXRayMode(false);
+            xrayActiveTiles.Remove(tile);
+
+            // Eğer değerli kaynak değilse hemen gizle
+            if (!tile.hasValuableResource)
+            {
+                float distance = Vector3.Distance(player.position, tile.transform.position);
+                if (distance > revealRadius)
+                {
+                    tile.HideTile();
+                }
+            }
+        }
     }
 
     private IEnumerator RevealWithDelay(HexTile tile, float delay)
@@ -196,6 +263,7 @@ public class FogOfWarManager : MonoBehaviour
     {
         currentlyVisibleTiles.RemoveWhere(tile => IsDestroyed(tile));
         revealedTiles.RemoveWhere(tile => IsDestroyed(tile));
+        xrayActiveTiles.RemoveWhere(tile => IsDestroyed(tile));
     }
 
     private bool IsDestroyed(HexTile tile)
@@ -207,23 +275,29 @@ public class FogOfWarManager : MonoBehaviour
     {
         currentlyVisibleTiles.Clear();
         revealedTiles.Clear();
+        xrayActiveTiles.Clear();
     }
 
     public void LogTileStatus()
     {
         Debug.Log($"Currently Visible Tiles: {currentlyVisibleTiles.Count}");
         Debug.Log($"Total Revealed Tiles: {revealedTiles.Count}");
+        Debug.Log($"X-Ray Active Tiles: {xrayActiveTiles.Count}");
 
         int destroyedVisible = currentlyVisibleTiles.Count(tile => IsDestroyed(tile));
         int destroyedRevealed = revealedTiles.Count(tile => IsDestroyed(tile));
+        int destroyedXRay = xrayActiveTiles.Count(tile => IsDestroyed(tile));
 
-        if (destroyedVisible > 0 || destroyedRevealed > 0)
+        if (destroyedVisible > 0 || destroyedRevealed > 0 || destroyedXRay > 0)
         {
             Debug.LogWarning(
-                $"Destroyed: {destroyedVisible} visible, {destroyedRevealed} revealed tiles"
+                $"Destroyed: {destroyedVisible} visible, {destroyedRevealed} revealed, {destroyedXRay} xray tiles"
             );
         }
     }
+
+    public bool IsXRayOnCooldown => xrayOnCooldown;
+    public bool IsXRayActive => isXrayActive;
 
     private void OnDrawGizmosSelected()
     {
@@ -234,6 +308,19 @@ public class FogOfWarManager : MonoBehaviour
 
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(player.position, hideRadius);
+
+            // X-Ray menzilini çiz
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(player.position, xrayRadius);
+
+            // X-Ray açısını çiz
+            Vector3 forward = player.forward;
+            Vector3 right = Quaternion.AngleAxis(xrayAngle * 0.5f, Vector3.up) * forward;
+            Vector3 left = Quaternion.AngleAxis(-xrayAngle * 0.5f, Vector3.up) * forward;
+
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawRay(player.position, right * xrayRadius);
+            Gizmos.DrawRay(player.position, left * xrayRadius);
         }
     }
 }
