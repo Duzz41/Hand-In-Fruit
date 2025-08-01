@@ -1295,7 +1295,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerModel: {fileID: 2859352191758144936}
-  shakeMagnitude: 0.05
+  shakeMagnitude: 0.04
   shakeSpeed: 50
   vibrationInterval: 0.1
   enableContinuousVibration: 1
@@ -1317,7 +1317,7 @@ MonoBehaviour:
   frontAngleThreshold: 60
   minMovementThreshold: 0.1
   objectShakeMagnitude: 0.025
-  objectShakeSpeed: 30
+  objectShakeSpeed: 60
   enableObjectShake: 1
   debugForceBuildup: 0
   showDebugGizmos: 0
@@ -1335,12 +1335,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxFuel: 150
   currentFuel: 150
-  fuelConsumptionRate: 5
-  wallCollisionFuelRate: 6
+  fuelConsumptionRate: 4
+  wallCollisionFuelRate: 5
   refuelRate: 40
   lowFuelThreshold: 20
   startAreaCenter: {fileID: 0}
-  refuelAreaRadius: 10
+  refuelAreaRadius: 6.94
   autoTeleportOnEmpty: 1
   teleportDelay: 1
   debugFuel: 0
@@ -1374,6 +1374,8 @@ MonoBehaviour:
   debugVelocity: 1
   debugCollisions: 0
   debugLogInterval: 0.5
+  engineSound: {fileID: 0}
+  drillSound: {fileID: 0}
 --- !u!54 &8621934940644133456
 Rigidbody:
   m_ObjectHideFlags: 0
