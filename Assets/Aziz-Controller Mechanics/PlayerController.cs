@@ -106,10 +106,10 @@ public class PlayerController : MonoBehaviour
 
         // Initialize fuel system integration
         InitializeFuelSystem();
-        SetupAudiroSource();
+        SetupAudioSource();
     }
 
-    void SetupAudiroSource()
+    void SetupAudioSource()
     {
         engineSource = gameObject.GetComponent<AudioSource>();
         engineSource.clip = engineSound;
@@ -185,7 +185,7 @@ public class PlayerController : MonoBehaviour
         CalculateMovement();
         HandleCollisionRecovery();
         MonitorPhysicsValues();
-        // HandleEngineSound();
+        HandleEngineSound();
 
         // Debug velocity logging
         if (debugVelocity && Time.time - lastDebugTime >= debugLogInterval)
@@ -466,11 +466,11 @@ public class PlayerController : MonoBehaviour
         }
 
         // SFX: Çarpışma sesi sadece belirli kuvvetin üstünde olunca çalsın
-        /*if (collision.relativeVelocity.magnitude > 2f)
-  {
-              sfxSource.PlayOneShot(drillSound);
-              Debug.Log($"DRILLING");
-          }*/
+        if (collision.relativeVelocity.magnitude > 2f)
+        {
+            sfxSource.PlayOneShot(drillSound);
+            Debug.Log($"DRILLING");
+        }
 
         // Eğer otomatik kurtarma açıksa ve çarpışma yeterince güçlüyse
         if (
