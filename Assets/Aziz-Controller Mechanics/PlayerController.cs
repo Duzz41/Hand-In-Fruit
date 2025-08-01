@@ -118,6 +118,7 @@ public class PlayerController : MonoBehaviour
         engineSource.spatialBlend = 0f; // 2D ses
 
         sfxSource = gameObject.GetComponent<AudioSource>();
+
         sfxSource.loop = false;
         sfxSource.playOnAwake = false;
         sfxSource.spatialBlend = 0f;
@@ -216,11 +217,11 @@ public class PlayerController : MonoBehaviour
     {
         if (IsMoving() && !engineSource.isPlaying && CanMove())
         {
-            engineSource.Play();
+            SoundCallManager.instance.PlaySound("EngineSound");
         }
         else if ((!IsMoving() || !CanMove()) && engineSource.isPlaying)
         {
-            engineSource.Stop();
+            SoundCallManager.instance.StopSound("EngineSound");
         }
     }
 
@@ -466,10 +467,10 @@ public class PlayerController : MonoBehaviour
         }
 
         // SFX: Çarpışma sesi sadece belirli kuvvetin üstünde olunca çalsın
+        // SFX: Çarpışma sesi sadece belirli kuvvetin üstünde olunca çalsın
         if (collision.relativeVelocity.magnitude > 2f)
         {
-            sfxSource.PlayOneShot(drillSound);
-            Debug.Log($"DRILLING");
+            SoundCallManager.instance.PlayOneShot("SFXSound", drillSound);
         }
 
         // Eğer otomatik kurtarma açıksa ve çarpışma yeterince güçlüyse
