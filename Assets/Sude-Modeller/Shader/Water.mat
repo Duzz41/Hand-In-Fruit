@@ -52,7 +52,7 @@ Material:
     m_Ints: []
     m_Floats:
     - _Dalgalanma_Hizi: 2
-    - _Dalgalanma_Yogunlugu: 50
+    - _Dalgalanma_Yogunlugu: 20
     - _Dalgalanma_Zayifligi: 8
     - _Kopuk_Boyutu: 30
     - _Kopuk_Hizi: 0.5
