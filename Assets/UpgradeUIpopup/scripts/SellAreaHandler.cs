@@ -1,5 +1,5 @@
-using UnityEngine;
 using TMPro; // TextMeshPro UI bile�enleri i�in gerekli
+using UnityEngine;
 
 public class SellAreaHandler : MonoBehaviour
 {
@@ -36,7 +36,9 @@ public class SellAreaHandler : MonoBehaviour
     [Tooltip("Delme g�c� metni i�in format dizesi. {0} delme g�c� seviyesini temsil eder.")]
     public string drillPowerFormatString = "Delme G�c�: Seviye {0}";
 
-    [Tooltip("X-Ray g�r�� metni i�in format dizesi. {0} X-Ray durumunu ('Aktif'/'Deaktif') temsil eder.")]
+    [Tooltip(
+        "X-Ray g�r�� metni i�in format dizesi. {0} X-Ray durumunu ('Aktif'/'Deaktif') temsil eder."
+    )]
     public string xRayVisionFormatString = "X-Ray G�r��: {0}";
 
     [Tooltip("Pop-up'�n ba�l�k metni.")]
@@ -45,7 +47,6 @@ public class SellAreaHandler : MonoBehaviour
     [Tooltip("Kapatma butonunun varsay�lan metni.")]
     public string closeButtonDefaultText = "Tamam";
 
-
     void Start()
     {
         // UpgradeManager instance'�n�n mevcut olup olmad���n� kontrol et
@@ -53,9 +54,12 @@ public class SellAreaHandler : MonoBehaviour
         // Genellikle Script Execution Order ayarlar�ndan kontrol edilir.
         if (UpgradeManager.Instance == null)
         {
-            Debug.LogError("UpgradeManager.Instance bulunamad�! L�tfen sahnede bir 'UpgradeManager' GameObject'i oldu�undan ve 'UpgradeManager.cs' script'inin ona eklendi�inden emin olun. Ayr�ca Script Execution Order ayarlar�n�z� kontrol edin.", this);
+            Debug.LogError(
+                "UpgradeManager.Instance bulunamad�! L�tfen sahnede bir 'UpgradeManager' GameObject'i oldu�undan ve 'UpgradeManager.cs' script'inin ona eklendi�inden emin olun. Ayr�ca Script Execution Order ayarlar�n�z� kontrol edin.",
+                this
+            );
             // Hata durumunda script'i devre d��� b�rakmak faydal� olabilir
-            // enabled = false; 
+            // enabled = false;
             return; // Metottan ��k
         }
 
@@ -82,7 +86,10 @@ public class SellAreaHandler : MonoBehaviour
         // ve UpgradeManager instance'�n�n var oldu�undan emin ol.
         if (other.CompareTag(playerVehicleTag) && UpgradeManager.Instance != null)
         {
-            Debug.Log($"Oyuncu Arac� ({other.gameObject.name}) Sat�� Alan�na Girdi. Madenler Sat�l�yor...", this);
+            Debug.Log(
+                $"Oyuncu Arac� ({other.gameObject.name}) Sat�� Alan�na Girdi. Madenler Sat�l�yor...",
+                this
+            );
 
             // UpgradeManager �zerinden toplanm�� madenleri sat ve kazan�lan paray� al
             int earnedMoney = UpgradeManager.Instance.SellAllMines();
@@ -102,7 +109,10 @@ public class SellAreaHandler : MonoBehaviour
             // Arac�n g�ncel delme g�c� seviyesini formatlayarak g�ncelle
             if (drillPowerText != null)
             {
-                drillPowerText.text = string.Format(drillPowerFormatString, UpgradeManager.Instance.drillPowerLevel);
+                drillPowerText.text = string.Format(
+                    drillPowerFormatString,
+                    UpgradeManager.Instance.drillPowerLevel
+                );
             }
 
             // Arac�n X-Ray g�r�� durumunu formatlayarak g�ncelle
@@ -134,4 +144,3 @@ public class SellAreaHandler : MonoBehaviour
         }
     }
 }
-
