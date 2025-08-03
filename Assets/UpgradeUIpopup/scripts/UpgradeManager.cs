@@ -1,48 +1,38 @@
 using UnityEngine;
-using UnityEngine.UI; // Image bileþeni için gerekli
-using TMPro; // TextMeshPro bileþeni için gerekli
+using System.Collections.Generic;
+using UnityEngine.UI;
+using TMPro;
 
 public class UpgradeManager : MonoBehaviour
 {
-    // Singleton deseni: UpgradeManager'a oyunun herhangi bir yerinden kolayca eriþim saðlar.
-    // Sadece bir instance olmasýný garanti eder.
     public static UpgradeManager Instance { get; private set; }
 
     [Header("Player Stats")]
-    [Tooltip("Oyuncunun þu anki para miktarý.")]
+    // Oyuncunun para miktarýný 0'dan baþlatýr
     public int currentMoney = 0;
-
-    [Tooltip("Aracýn delme gücü seviyesi.")]
     public int drillPowerLevel = 1;
-
-    [Tooltip("Aracýn X-Ray görüþ özelliðinin aktif olup olmadýðý.")]
     public bool hasXRayVision = false;
 
     [Header("Vehicle Fuel Settings")]
-    [Tooltip("Aracýn þu anki benzin miktarý.")]
     public float currentFuel = 100f;
-
-    [Tooltip("Aracýn maksimum benzin kapasitesi.")]
     public float maxFuelCapacity = 100f;
-
-    [Tooltip("Benzin tüketim hýzý (birim zamanda ne kadar benzin harcandýðý).")]
     public float fuelConsumptionRate = 1f;
 
-    [Header("Mine & Inventory Settings")]
-    [Tooltip("Oyuncunun envanterindeki toplanmýþ maden sayýsý.")]
-    public int collectedMinesCount = 0;
+    [Header("Resource Values")]
+    [Tooltip("Farklý maden türlerinin satýþ deðerleri.")]
+    public Dictionary<string, int> resourceValues = new Dictionary<string, int>();
 
-    [Tooltip("Her bir madenin satýþ deðeri.")]
-    public int mineValue = 10;
-
-    // UI referanslarý artýk UIManager tarafýndan atanacak ve private olarak tutulacak
+    // UI referanslarý UIManager tarafýndan atanacak
     private TMP_Text globalMoneyText;
     private Image fuelBarFillImage;
     private TMP_Text fuelAmountText;
+    private TMP_Text drillLevelText; // Yeni eklenen referans
+    private TMP_Text drillCostText; // Sondaj yükseltme pop-up'ýndaki metin
+    private TMP_Text nextDrillPowerText; // Sondaj yükseltme pop-up'ýndaki metin
 
     void Awake()
     {
-        // Singleton uygulamasýnýn temel mantýðý
+        // Singleton deseni
         if (Instance == null)
         {
             Instance = this;
@@ -50,114 +40,122 @@ public class UpgradeManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("Sahneye birden fazla UpgradeManager eklenmeye çalýþýldý! Mevcut olan korunacak, yeni olan yok ediliyor.", this);
             Destroy(gameObject);
         }
+
+        // Maden deðerlerini tanýmlar
+        resourceValues.Add("Stone", 50);
+        resourceValues.Add("Iron", 100);
+        resourceValues.Add("Gold", 200);
     }
 
-    // === YENÝ METOT: UIManager'ýn UI referanslarýný atamasý için ===
-    /// <summary>
-    /// UIManager tarafýndan çaðrýlarak global UI referanslarýnýn UpgradeManager'a atanmasýný saðlar.
-    /// </summary>
-    public void SetUIRefs(TMP_Text moneyText, Image fuelBarImage, TMP_Text fuelText)
+    // UIManager'dan tüm UI referanslarýný alýr
+    public void SetUIRefs(TMP_Text moneyText, Image fuelBarImage, TMP_Text fuelText, TMP_Text drillText, TMP_Text drillCost, TMP_Text nextDrillPower)
     {
         globalMoneyText = moneyText;
         fuelBarFillImage = fuelBarImage;
         fuelAmountText = fuelText;
+        drillLevelText = drillText;
+        drillCostText = drillCost;
+        nextDrillPowerText = nextDrillPower;
+
+        // Baþlangýçta tüm UI'larý günceller
+        UpdateGlobalMoneyUI();
+        UpdateFuelUI();
+        UpdateDrillLevelUI();
     }
 
-    void Update()
-    {
-        // Benzin tüketimi devam ediyor
-        ConsumeFuel(fuelConsumptionRate * Time.deltaTime);
-    }
-
-    /// <summary>
-    /// Oyuncuya para ekler ve UI'ý günceller.
-    /// </summary>
-    /// <param name="amount">Eklenecek para miktarý.</param>
     public void AddMoney(int amount)
     {
         currentMoney += amount;
         UpdateGlobalMoneyUI();
-        Debug.Log($"Para Eklendi: {amount}. Toplam Para: {currentMoney}");
     }
 
-    /// <summary>
-    /// Oyuncudan para düþer. Yeterli para yoksa false döndürür.
-    /// </summary>
-    /// <param name="amount">Harcanacak para miktarý.</param>
-    /// <returns>Para harcanabildiyse true, aksi takdirde false.</returns>
+    // Harcama iþlemi yapar ve paranýn yeterli olup olmadýðýný kontrol eder
     public bool SpendMoney(int amount)
     {
         if (currentMoney >= amount)
         {
             currentMoney -= amount;
             UpdateGlobalMoneyUI();
-            Debug.Log($"Para Harcandý: {amount}. Kalan Para: {currentMoney}");
             return true;
         }
         Debug.Log("Yeterli para yok!");
         return false;
     }
 
-    /// <summary>
-    /// Oyuncunun envanterine maden ekler.
-    /// </summary>
-    /// <param name="count">Eklenecek maden sayýsý (varsayýlan: 1).</param>
-    public void CollectMine(int count = 1)
+    // Envanterdeki tüm madenleri satar ve para kazanýr
+    public int SellAllResources()
     {
-        collectedMinesCount += count;
-        Debug.Log($"Maden Toplandý. Toplam Maden: {collectedMinesCount}");
+        int earnedMoney = 0;
+
+        if (InventoryManager.Instance != null)
+        {
+            Dictionary<string, int> currentInventory = InventoryManager.Instance.GetAllResources();
+
+            foreach (var resource in currentInventory)
+            {
+                string resourceType = resource.Key;
+                int resourceCount = resource.Value;
+
+                if (resourceValues.ContainsKey(resourceType))
+                {
+                    earnedMoney += resourceCount * resourceValues[resourceType];
+                }
+            }
+
+            AddMoney(earnedMoney);
+            InventoryManager.Instance.ClearInventory();
+            Debug.Log($"Tüm madenler satýldý. Kazanýlan: {earnedMoney} para.");
+        }
+        else
+        {
+            Debug.LogError("InventoryManager bulunamadý. Satýþ iþlemi yapýlamýyor.");
+        }
+
+        return earnedMoney;
     }
 
-    /// <summary>
-    /// Oyuncunun tüm madenlerini satar ve kazanýlan parayý döndürür.
-    /// </summary>
-    /// <returns>Maden satýþýndan kazanýlan toplam para.</returns>
-    public int SellAllMines()
-    {
-        int earned = collectedMinesCount * mineValue;
-        AddMoney(earned);
-        collectedMinesCount = 0;
-        Debug.Log($"Tüm madenler satýldý. Kazanýlan: {earned} para.");
-        return earned;
-    }
-
-    // UPGRADE METOTLARI
-    /// <summary>
-    /// Delme gücü seviyesini yükseltir.
-    /// </summary>
+    // Delme gücünü yükseltme metodu
     public void UpgradeDrillPower()
     {
-        int cost = drillPowerLevel * 100;
+        int cost = 300;
         if (SpendMoney(cost))
         {
             drillPowerLevel++;
+            UpdateDrillLevelUI();
             Debug.Log($"Delme Gücü Seviye {drillPowerLevel}'e yükseltildi.");
-            // UIManager'daki UI güncelleme metodunu çaðýr (varsayýmsal)
-            // UIManager.Instance?.UpdateDrillUpgradeUI(); 
         }
     }
 
-    /// <summary>
-    /// X-Ray görüþ özelliðini açar veya kapatýr.
-    /// </summary>
-    /// <param name="activate">X-Ray görüþünün aktif olup olmayacaðý.</param>
+    // X-Ray görüþü açma/kapama metodu
     public void ToggleXRayVision(bool activate)
     {
-        // Maliyet ve kontrol eklenebilir
-        // if (!hasXRayVision && SpendMoney(xrayUpgradeCost)) {
-        hasXRayVision = activate;
-        Debug.Log($"X-Ray Görüþ: {(hasXRayVision ? "Aktif" : "Deaktif")}");
-        // UIManager.Instance?.UpdateXRayUpgradeUI();
-        // }
+        int cost = 300;
+        if (!hasXRayVision && SpendMoney(cost))
+        {
+            hasXRayVision = activate;
+            Debug.Log($"X-Ray Görüþ: {(hasXRayVision ? "Aktif" : "Deaktif")}");
+        }
     }
 
-    /// <summary>
-    /// Belirtilen miktarda benzin tüketir.
-    /// </summary>
-    /// <param name="amount">Tüketilecek benzin miktarý.</param>
+    // Yakýt kapasitesini yükseltme metodu
+    public void UpgradeMaxFuelCapacity()
+    {
+        int cost = 300;
+        if (SpendMoney(cost))
+        {
+            maxFuelCapacity += 25f;
+            if (currentFuel > maxFuelCapacity)
+            {
+                currentFuel = maxFuelCapacity;
+            }
+            UpdateFuelUI();
+            Debug.Log($"Maksimum Benzin Kapasitesi {maxFuelCapacity}'e yükseltildi.");
+        }
+    }
+
+    // Yakýt tüketimi ve eklenmesi
     public void ConsumeFuel(float amount)
     {
         currentFuel -= amount;
@@ -169,10 +167,6 @@ public class UpgradeManager : MonoBehaviour
         UpdateFuelUI();
     }
 
-    /// <summary>
-    /// Belirtilen miktarda benzin ekler (depo kapasitesini aþmaz).
-    /// </summary>
-    /// <param name="amount">Eklenecek benzin miktarý.</param>
     public void AddFuel(float amount)
     {
         currentFuel += amount;
@@ -184,46 +178,32 @@ public class UpgradeManager : MonoBehaviour
         Debug.Log($"Benzin Eklendi: {amount}. Güncel Benzin: {currentFuel}");
     }
 
-    /// <summary>
-    /// Maksimum benzin kapasitesini yükseltir (upgrade için).
-    /// </summary>
-    /// <param name="newCapacity">Yeni maksimum benzin kapasitesi.</param>
-    public void UpgradeMaxFuelCapacity(float newCapacity)
-    {
-        // Maliyet ve kontrol eklenebilir
-        // int upgradeCost = CalculateFuelCapacityUpgradeCost();
-        // if (SpendMoney(upgradeCost)) {
-        maxFuelCapacity = newCapacity;
-        if (currentFuel > maxFuelCapacity)
-        {
-            currentFuel = maxFuelCapacity;
-        }
-        UpdateFuelUI();
-        Debug.Log($"Maksimum Benzin Kapasitesi {maxFuelCapacity}'e yükseltildi.");
-        // UIManager.Instance?.UpdateFuelUpgradeUI();
-        // }
-    }
-
-
-    // UI GÜNCELLEME METOTLARI
-    // Bu metotlar private referanslarý kullanarak UI'ý günceller.
+    // Para miktarýný UI'da günceller
     public void UpdateGlobalMoneyUI()
     {
         if (globalMoneyText != null)
         {
-            globalMoneyText.text = "Para: " + currentMoney.ToString();
+            globalMoneyText.text = currentMoney.ToString();
         }
     }
 
+    // Sondaj seviyesini UI'da günceller
+    public void UpdateDrillLevelUI()
+    {
+        if (drillLevelText != null)
+        {
+            drillLevelText.text = $"DRILL LEVEL {drillPowerLevel}";
+        }
+    }
+
+    // Yakýt çubuðunu ve metnini günceller
     public void UpdateFuelUI()
     {
         float fuelPercentage = currentFuel / maxFuelCapacity;
-
         if (fuelBarFillImage != null)
         {
             fuelBarFillImage.fillAmount = fuelPercentage;
         }
-
         if (fuelAmountText != null)
         {
             fuelAmountText.text = $"Benzin: {currentFuel:F0}/{maxFuelCapacity:F0}";
