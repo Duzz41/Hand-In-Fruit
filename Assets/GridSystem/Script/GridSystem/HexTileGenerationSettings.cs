@@ -18,12 +18,16 @@ public class HexTileGenerationSettings : ScriptableObject
         Stone,
         Iron,
         Cliff,
+        Emerald,
+        Gold,
     }
 
     [Header("Tile Prefabs")]
     public GameObject stonePrefab;
     public GameObject ironPrefab;
     public GameObject cliffPrefab;
+    public GameObject EmeraldPrefab;
+    public GameObject GoldPrefab;
 
     public GameObject GetTile(TileType type)
     {
@@ -35,6 +39,10 @@ public class HexTileGenerationSettings : ScriptableObject
                 return ironPrefab;
             case TileType.Cliff:
                 return cliffPrefab;
+            case TileType.Emerald:
+                return EmeraldPrefab;
+            case TileType.Gold:
+                return GoldPrefab;
         }
         return null;
     }
