@@ -52,11 +52,11 @@ public class RunIntroManager : MonoBehaviour
         // Dağ yukarı çıkar
         mountain.DOMove(mountainUpPos.position, mountainMoveDuration);
         yield return new WaitForSeconds(mountainMoveDuration);
-
+        playerController.SetMovementEnabled(true);
         // Kapı aşağı iner
         door.DOMove(doorStartPos.position, doorMoveDuration);
         yield return new WaitForSeconds(doorMoveDuration);
-        playerController.SetMovementEnabled(true);
+
         Debug.Log("Intro bitti, oyun başlıyor.");
     }
 }

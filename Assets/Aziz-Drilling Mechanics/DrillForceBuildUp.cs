@@ -67,6 +67,24 @@ public class DrillForceBuildup : MonoBehaviour
             Debug.LogWarning("[ForceBuildup] VibratePlayer component not found. " +
                              "Shake and vibration functionality will be disabled.");
         }
+
+        // FIXED: Set all destructible objects to drilling-only mode at start
+        SetAllDestructiblesToDrillingMode();
+    }
+
+    // FIXED: Ensure all destructible objects use drilling system
+    void SetAllDestructiblesToDrillingMode()
+    {
+        UnfreezeChilds[] allDestructibles = FindObjectsByType<UnfreezeChilds>(FindObjectsSortMode.None);
+        foreach (UnfreezeChilds destructible in allDestructibles)
+        {
+            destructible.SetDrillingOnlyMode(true);
+        }
+
+        if (debugForceBuildup)
+        {
+            Debug.Log($"[ForceBuildup] Set {allDestructibles.Length} destructible objects to drilling-only mode");
+        }
     }
 
     void Update()
@@ -429,6 +447,16 @@ public class DrillForceBuildup : MonoBehaviour
         if (unfreezeScript == null || !unfreezeScript.IsIntact())
         {
             return; // Not a valid target or already fractured
+        }
+
+        // FIXED: Ensure this object is set to drilling-only mode
+        if (unfreezeScript.CanFractureByCollision())
+        {
+            unfreezeScript.SetDrillingOnlyMode(true);
+            if (debugForceBuildup)
+            {
+                Debug.Log($"[ForceBuildup] Set {collision.gameObject.name} to drilling-only mode");
+            }
         }
 
         // Calculate collision direction relative to player's forward
