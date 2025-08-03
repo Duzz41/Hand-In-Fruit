@@ -1,10 +1,9 @@
 using UnityEngine;
-using System; // Action için gerekli
+using System;
 using System.Collections.Generic;
 
 public class InventoryManager : MonoBehaviour
 {
-    // Singleton deseni için Instance
     private static InventoryManager _instance;
     public static InventoryManager Instance
     {
@@ -15,31 +14,33 @@ public class InventoryManager : MonoBehaviour
                 _instance = FindFirstObjectByType<InventoryManager>();
                 if (_instance == null)
                 {
-                    GameObject inventoryObject = new GameObject("InventoryManager");
-                    _instance = inventoryObject.AddComponent<InventoryManager>();
+                    GameObject inventoryManagerObject = new GameObject("InventoryManager");
+                    _instance = inventoryManagerObject.AddComponent<InventoryManager>();
                 }
             }
             return _instance;
         }
     }
 
-    // Envanteri tutan sözlük
     public Dictionary<string, int> inventory = new Dictionary<string, int>();
+    public bool showCollectionSphere = true;
 
-    // Kaynak toplandýðýnda dýþarýdan dinlenebilecek olay (event)
+    // Events
     public static event Action<string, int> OnResourceCollected;
     public static event Action<string, int> OnResourceUsed;
     public static event Action OnInventoryCleared;
 
-    void Awake()
+    private void Awake()
     {
         if (_instance != null && _instance != this)
         {
             Destroy(gameObject);
-            return;
         }
-        _instance = this;
-        DontDestroyOnLoad(gameObject);
+        else
+        {
+            _instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
     }
 
     private void OnDestroy()
@@ -62,11 +63,13 @@ public class InventoryManager : MonoBehaviour
         {
             inventory[resourceType] = amount;
         }
-
-        // Kaynak toplandýðýnda OnResourceCollected event'ini çaðýr
         OnResourceCollected?.Invoke(resourceType, amount);
-
         Debug.Log($"Collected {resourceType}! Total: {inventory[resourceType]}");
+    }
+
+    public int GetResourceCount(string resourceType)
+    {
+        return inventory.ContainsKey(resourceType) ? inventory[resourceType] : 0;
     }
 
     public bool UseResource(string resourceType, int amount)
@@ -88,12 +91,8 @@ public class InventoryManager : MonoBehaviour
             return false;
         }
     }
-
-    public int GetResourceCount(string resourceType)
-    {
-        return inventory.ContainsKey(resourceType) ? inventory[resourceType] : 0;
-    }
-
+ 
+  
     public void ClearInventory()
     {
         inventory.Clear();
@@ -106,19 +105,13 @@ public class InventoryManager : MonoBehaviour
         return new Dictionary<string, int>(inventory);
     }
 
-    // Konsolda envanteri göstermek için metot
-    [ContextMenu("Show Inventory")]
-    public void ShowInventory()
+    void OnDrawGizmosSelected()
     {
-        Debug.Log("=== INVENTORY ===");
-        if (inventory.Count == 0)
+        if (showCollectionSphere)
         {
-            Debug.Log("Inventory is empty!");
-            return;
-        }
-        foreach (var item in inventory)
-        {
-            Debug.Log($"{item.Key}: {item.Value}");
+            float collectionRadius = 3f;
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(transform.position, collectionRadius);
         }
     }
 }
