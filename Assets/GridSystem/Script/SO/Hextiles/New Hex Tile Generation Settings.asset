@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: New Hex Tile Generation Settings
   m_EditorClassIdentifier: 
   defaultVisibleMaterial: {fileID: -3033667219593020291, guid: eb2cf7c49babeb14b9ca8b06a2e48512, type: 3}
-  defaultHiddenMaterial: {fileID: 2100000, guid: 343fcb037d971d841a6f4091e4d5c769, type: 2}
+  defaultHiddenMaterial: {fileID: 2100000, guid: d217bca38ab3a9d4cab7574a5ec38b97, type: 2}
   xrayNormalMaterial: {fileID: 2100000, guid: bb149cfa893c3744c8370e64f4e791b3, type: 2}
-  xrayValuableMaterial: {fileID: 2100000, guid: 415e21c30e23b6f4a97b0d0085808c15, type: 2}
+  xrayValuableMaterial: {fileID: 2100000, guid: d217bca38ab3a9d4cab7574a5ec38b97, type: 2}
   useValuableResourceSettings: 1
-  valuableResourceTypes: 01000000
-  stonePrefab: {fileID: 3836985184289157735, guid: a1504a642b367e647a740ee7215b395e, type: 3}
-  ironPrefab: {fileID: 4832458928524987159, guid: 0abb93ad1048bbc498da9295eff54e58, type: 3}
-  cliffPrefab: {fileID: 5279952595844144004, guid: f9e9cfb75fd9b5d4bac1ba92a97558e6, type: 3}
+  valuableResourceTypes: 010000000300000004000000
+  stonePrefab: {fileID: 6488901961342639277, guid: e9265daaa4bd79d4d8202b9f252d3c9f, type: 3}
+  ironPrefab: {fileID: 5723588006166720695, guid: 016ed10ac0dfb154491b29247ec92958, type: 3}
+  cliffPrefab: {fileID: 5980043999696513811, guid: 9ffc7c3245e0e9e4291ca07a10e5df30, type: 3}
+  EmeraldPrefab: {fileID: 1187381404967276153, guid: 204c5c1b792440e43b407ee77a007b7e, type: 3}
+  GoldPrefab: {fileID: 7059082853303410895, guid: ad2c64d2a722e6843ba97747a286252c, type: 3}
