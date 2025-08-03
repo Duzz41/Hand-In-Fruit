@@ -119,8 +119,6 @@ public class HexTile : MonoBehaviour
             pieceRenderers.Add(renderer);
             originalMaterials.Add(renderer.sharedMaterial);
         }
-
-        Debug.Log($"[{gameObject.name}] Cached {pieceRenderers.Count} renderers.");
     }
 
     // Yeni metod - recursive olarak tüm alt nesneleri tara
@@ -472,12 +470,6 @@ public class HexTile : MonoBehaviour
         {
             // Rastgele belirle
             hasValuableResource = Random.value < valuableResourceChance;
-        }
-
-        // Debug için
-        if (hasValuableResource)
-        {
-            Debug.Log($"[{gameObject.name}] Valuable resource detected! Type: {tileType}");
         }
     }
 

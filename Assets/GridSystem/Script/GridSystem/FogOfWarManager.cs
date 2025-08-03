@@ -36,6 +36,9 @@ public class FogOfWarManager : MonoBehaviour
     private bool xrayOnCooldown = false;
     private bool isXrayActive = false;
 
+    [SerializeField]
+    private ParticleSystem xrayEffect;
+
     private HashSet<HexTile> currentlyVisibleTiles = new HashSet<HexTile>();
     private HashSet<HexTile> revealedTiles = new HashSet<HexTile>();
     private HashSet<HexTile> xrayActiveTiles = new HashSet<HexTile>();
@@ -124,6 +127,8 @@ public class FogOfWarManager : MonoBehaviour
     {
         xrayOnCooldown = true;
         isXrayActive = true;
+        if (xrayEffect != null)
+            xrayEffect.Play();
 
         List<XRayTile> tileList = new List<XRayTile>();
 
@@ -176,7 +181,8 @@ public class FogOfWarManager : MonoBehaviour
 
         isXrayActive = false;
         xrayActiveTiles.Clear();
-
+        if (xrayEffect != null)
+            xrayEffect.Stop();
         Debug.Log("X-Ray taraması tamamlandı");
 
         // Kalan cooldown süresini bekle

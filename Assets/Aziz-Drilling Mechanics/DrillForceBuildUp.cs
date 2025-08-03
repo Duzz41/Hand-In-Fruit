@@ -71,6 +71,9 @@ public class DrillForceBuildup : MonoBehaviour
 
     void Update()
     {
+        // FIXED: Check if target object is still valid before processing
+        ValidateCurrentTarget();
+
         bool wasValidForceBuildup = IsValidForceBuildup();
 
         UpdateForceBuildup();
@@ -103,6 +106,62 @@ public class DrillForceBuildup : MonoBehaviour
             {
                 StopShakingTarget();
             }
+        }
+    }
+
+    // FIXED: New method to validate if current target is still valid
+    void ValidateCurrentTarget()
+    {
+        if (currentTargetObject != null && currentTargetScript != null)
+        {
+            // Check if the target object has been fractured
+            if (!currentTargetScript.IsIntact())
+            {
+                if (debugForceBuildup)
+                {
+                    Debug.Log($"[ForceBuildup] Target {currentTargetObject.name} has been fractured. Clearing collision state.");
+                }
+                ClearCollisionState();
+            }
+            // Check if the target object has been destroyed
+            else if (currentTargetObject == null)
+            {
+                if (debugForceBuildup)
+                {
+                    Debug.Log("[ForceBuildup] Target object has been destroyed. Clearing collision state.");
+                }
+                ClearCollisionState();
+            }
+        }
+    }
+
+    // FIXED: Extracted method to clear collision state completely
+    void ClearCollisionState()
+    {
+        // Stop shaking before clearing references
+        if (isShakingTarget)
+        {
+            StopShakingTarget();
+        }
+
+        // Stop player vibration
+        if (playerVibrator != null && playerVibrator.IsShaking())
+        {
+            playerVibrator.StopShaking();
+        }
+
+        // Clear all collision-related state
+        isInValidCollision = false;
+        currentTargetObject = null;
+        currentTargetScript = null;
+        currentTargetTransform = null;
+        currentCollision = null;
+        forceValue = 0f;
+        forceAlreadyApplied = false;
+
+        if (debugForceBuildup)
+        {
+            Debug.Log("[ForceBuildup] Collision state cleared completely.");
         }
     }
 
@@ -149,6 +208,10 @@ public class DrillForceBuildup : MonoBehaviour
         if (!isInValidCollision || currentTargetObject == null || currentTargetScript == null)
             return false;
 
+        // FIXED: Double-check that the target is still intact
+        if (!currentTargetScript.IsIntact())
+            return false;
+
         // Player must be moving
         if (playerController == null || !playerController.IsMoving() || !playerController.CanMove())
             return false;
@@ -186,6 +249,13 @@ public class DrillForceBuildup : MonoBehaviour
     {
         if (currentTargetObject == null || currentTargetScript == null)
             return;
+
+        // FIXED: Check one more time if target is still intact before applying force
+        if (!currentTargetScript.IsIntact())
+        {
+            ClearCollisionState();
+            return;
+        }
 
         // Stop shaking before applying force
         if (isShakingTarget)
@@ -239,9 +309,8 @@ public class DrillForceBuildup : MonoBehaviour
             Debug.Log($"[ForceBuildup] Fracture() called on {currentTargetObject.name}");
         }
 
-        // Reset and mark as applied
-        forceValue = 0f;
-        forceAlreadyApplied = true;
+        // FIXED: Clear collision state immediately after fracturing
+        ClearCollisionState();
 
         // Start coroutine to reset the applied flag after a short delay
         StartCoroutine(ResetForceAppliedFlag());
@@ -291,6 +360,12 @@ public class DrillForceBuildup : MonoBehaviour
     {
         while (isShakingTarget && currentTargetTransform != null)
         {
+            // FIXED: Additional check to ensure target is still valid
+            if (currentTargetScript != null && !currentTargetScript.IsIntact())
+            {
+                break;
+            }
+
             // Calculate a random offset for the shake using Perlin noise
             Vector3 randomOffset = new Vector3(
                 Mathf.PerlinNoise(Time.time * objectShakeSpeed, 0) * 2 - 1,
@@ -336,25 +411,8 @@ public class DrillForceBuildup : MonoBehaviour
                 Debug.Log($"[ForceBuildup] Exited collision with target: {collision.gameObject.name}");
             }
 
-            // Stop shaking before clearing references
-            if (isShakingTarget)
-            {
-                StopShakingTarget();
-            }
-
-            // Clear current collision state
-            isInValidCollision = false;
-            currentTargetObject = null;
-            currentTargetScript = null;
-            currentTargetTransform = null;
-            currentCollision = null;
-            forceValue = 0f;
-            forceAlreadyApplied = false;
-
-            if (playerVibrator != null)
-            {
-                playerVibrator.StopShaking();
-            }
+            // FIXED: Use the centralized method to clear state
+            ClearCollisionState();
         }
     }
 
@@ -433,6 +491,12 @@ public class DrillForceBuildup : MonoBehaviour
         {
             StopShakingTarget();
         }
+    }
+
+    // FIXED: New method to force clear all drilling state
+    public void ForceStopDrilling()
+    {
+        ClearCollisionState();
     }
 
     public bool IsShakingTarget()
@@ -523,9 +587,6 @@ public class DrillForceBuildup : MonoBehaviour
     void OnDisable()
     {
         // Clean up when the component is disabled
-        if (isShakingTarget)
-        {
-            StopShakingTarget();
-        }
+        ClearCollisionState();
     }
 }
