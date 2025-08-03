@@ -23,6 +23,16 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private float dragCoefficient = 0.8f;
 
+    [Header("Y-Position Lock Settings")]
+    [SerializeField]
+    private bool lockYPosition = true;
+
+    [SerializeField]
+    private float fixedYPosition = 0f; // Set this to your desired Y position
+
+    [SerializeField]
+    private bool autoSetYPositionOnStart = true;
+
     [Header("Collision Recovery")]
     [SerializeField]
     private bool autoRecoverFromCollision = true;
@@ -96,7 +106,7 @@ public class PlayerController : MonoBehaviour
         InitializeComponents();
         SetupPhysics();
         BackupOriginalPhysicsValues();
-        // Ses kaynaklarını oluştur
+        SetupYPositionLock(); // NEW: Set up Y position locking
 
         // Find virtual joystick if using it
         if (useVirtualJoystick)
@@ -107,6 +117,28 @@ public class PlayerController : MonoBehaviour
         // Initialize fuel system integration
         InitializeFuelSystem();
         SetupAudioSource();
+    }
+
+    // NEW: Set up Y position locking
+    void SetupYPositionLock()
+    {
+        if (lockYPosition)
+        {
+            if (autoSetYPositionOnStart)
+            {
+                fixedYPosition = transform.position.y;
+            }
+
+            // Ensure the transform is at the correct Y position
+            Vector3 pos = transform.position;
+            pos.y = fixedYPosition;
+            transform.position = pos;
+
+            if (debugVelocity)
+            {
+                Debug.Log($"[PlayerController] Y position locked to: {fixedYPosition}");
+            }
+        }
     }
 
     void SetupAudioSource()
@@ -211,6 +243,46 @@ public class PlayerController : MonoBehaviour
         }
 
         LimitVelocity();
+
+        // NEW: Enforce Y position lock every physics update
+        EnforceYPositionLock();
+    }
+
+    // NEW: Enforce Y position locking
+    void EnforceYPositionLock()
+    {
+        if (!lockYPosition) return;
+
+        // Force Y position in transform
+        Vector3 currentPos = transform.position;
+        if (Mathf.Abs(currentPos.y - fixedYPosition) > 0.001f)
+        {
+            currentPos.y = fixedYPosition;
+            transform.position = currentPos;
+
+            if (debugVelocity && Time.fixedTime % 1f < Time.fixedDeltaTime) // Log once per second
+            {
+                Debug.Log($"[PlayerController] Corrected Y position to {fixedYPosition}");
+            }
+        }
+
+        // Force Y velocity to zero
+        Vector3 currentVelocity = rb.linearVelocity;
+        if (Mathf.Abs(currentVelocity.y) > 0.001f)
+        {
+            currentVelocity.y = 0f;
+            rb.linearVelocity = currentVelocity;
+        }
+
+        // Ensure rigidbody constraints are maintained
+        if ((rb.constraints & RigidbodyConstraints.FreezePositionY) == 0)
+        {
+            rb.constraints |= RigidbodyConstraints.FreezePositionY;
+            if (debugVelocity)
+            {
+                Debug.Log("[PlayerController] Restored Y position constraint on Rigidbody");
+            }
+        }
     }
 
     void HandleEngineSound()
@@ -258,8 +330,6 @@ public class PlayerController : MonoBehaviour
 
     void CalculateMovement()
     {
-        //moveDirection = new Vector3(joystickInput.x, 0f, joystickInput.y);
-        //float targetSpeed = moveDirection.magnitude * moveSpeed;
         moveDirection = new Vector3(-joystickInput.y, 0f, joystickInput.x);
         float targetSpeed = moveDirection.magnitude * moveSpeed;
 
@@ -309,7 +379,7 @@ public class PlayerController : MonoBehaviour
 
             rb.linearVelocity = new Vector3(
                 blendedVelocity.x,
-                rb.linearVelocity.y,
+                0f, // NEW: Ensure Y velocity is always 0
                 blendedVelocity.z
             );
         }
@@ -319,6 +389,9 @@ public class PlayerController : MonoBehaviour
                 targetVelocity - new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             Vector3 forceToApply = velocityDifference * rb.mass * acceleration;
             forceToApply = Vector3.ClampMagnitude(forceToApply, rb.mass * moveSpeed * 2f);
+
+            // NEW: Ensure no Y component in applied force
+            forceToApply.y = 0f;
             rb.AddForce(forceToApply, ForceMode.Force);
         }
     }
@@ -338,23 +411,13 @@ public class PlayerController : MonoBehaviour
         );
         rb.linearVelocity = new Vector3(
             deceleratedVelocity.x,
-            rb.linearVelocity.y,
+            0f, // NEW: Ensure Y velocity stays 0
             deceleratedVelocity.z
         );
 
         // Also reduce current speed
         currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, deceleration * Time.deltaTime * 2f);
     }
-
-    //void ApplyRotation()
-    //{
-    //    if (moveDirection.magnitude > 0.1f && currentSpeed > 0.5f && canMove)
-    //    {
-    //        Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-    //        float rotationStep = rotationSpeed * Time.fixedDeltaTime;
-    //        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationStep);
-    //    }
-    //}
 
     void ApplyRotation()
     {
@@ -386,7 +449,7 @@ public class PlayerController : MonoBehaviour
                 Time.fixedDeltaTime * 5f
             );
 
-            rb.linearVelocity = new Vector3(smoothLimited.x, rb.linearVelocity.y, smoothLimited.z);
+            rb.linearVelocity = new Vector3(smoothLimited.x, 0f, smoothLimited.z); // NEW: Ensure Y is 0
 
             if (debugVelocity)
             {
@@ -447,6 +510,16 @@ public class PlayerController : MonoBehaviour
             }
             rb.angularDamping = originalAngularDrag;
         }
+
+        // NEW: Monitor and restore Y position constraint
+        if ((rb.constraints & RigidbodyConstraints.FreezePositionY) == 0)
+        {
+            rb.constraints |= RigidbodyConstraints.FreezePositionY;
+            if (debugCollisions)
+            {
+                Debug.LogWarning("[PlayerController] Y position constraint was removed. Restoring.");
+            }
+        }
     }
 
     // Collision detection - Updated to work with fuel system
@@ -467,10 +540,17 @@ public class PlayerController : MonoBehaviour
         }
 
         // SFX: Çarpışma sesi sadece belirli kuvvetin üstünde olunca çalsın
-        // SFX: Çarpışma sesi sadece belirli kuvvetin üstünde olunca çalsın
         if (collision.relativeVelocity.magnitude > 2f)
         {
             SoundCallManager.instance.PlayOneShot("SFXSound", drillSound);
+        }
+
+        // NEW: Enforce Y position after collision
+        if (lockYPosition)
+        {
+            Vector3 pos = transform.position;
+            pos.y = fixedYPosition;
+            transform.position = pos;
         }
 
         // Eğer otomatik kurtarma açıksa ve çarpışma yeterince güçlüyse
@@ -500,9 +580,18 @@ public class PlayerController : MonoBehaviour
             fuelSystem.OnWallCollision(collision);
         }
 
+        // NEW: Continuously enforce Y position during collision
+        if (lockYPosition)
+        {
+            Vector3 pos = transform.position;
+            pos.y = fixedYPosition;
+            transform.position = pos;
+        }
+
         if (autoRecoverFromCollision && moveDirection.magnitude > 0.1f && canMove)
         {
             Vector3 pushForce = moveDirection.normalized * rb.mass * moveSpeed * 0.3f;
+            pushForce.y = 0f; // NEW: Ensure no Y component in push force
             rb.AddForce(pushForce, ForceMode.Force);
         }
     }
@@ -537,12 +626,13 @@ public class PlayerController : MonoBehaviour
             fuelSystem != null
                 ? $" Fuel: {fuelSystem.GetCurrentFuel():F1}/{fuelSystem.GetMaxFuel()}"
                 : "";
+        string yPositionStatus = lockYPosition ? $" Y-Lock: {fixedYPosition:F2}" : "";
 
         Debug.Log(
             $"[PlayerController] Current Velocity: {currentVelocity} | "
                 + $"Horizontal Speed: {horizontalVelocity.magnitude:F2} | "
                 + $"Target Speed: {currentSpeed:F2} | "
-                + $"Moving: {IsMoving()}{recoveryStatus}{fuelStatus}{fuelLevel}"
+                + $"Moving: {IsMoving()}{recoveryStatus}{fuelStatus}{fuelLevel}{yPositionStatus}"
         );
     }
 
@@ -559,12 +649,45 @@ public class PlayerController : MonoBehaviour
 
     public bool CanMove() => canMove; // New: Check if player can move
 
+    // NEW: Y position control methods
+    public void SetYPositionLock(bool lockY)
+    {
+        lockYPosition = lockY;
+        if (lockY)
+        {
+            fixedYPosition = transform.position.y;
+            EnforceYPositionLock();
+        }
+    }
+
+    public void SetFixedYPosition(float yPos)
+    {
+        fixedYPosition = yPos;
+        if (lockYPosition)
+        {
+            Vector3 pos = transform.position;
+            pos.y = fixedYPosition;
+            transform.position = pos;
+        }
+    }
+
+    public float GetFixedYPosition() => fixedYPosition;
+
+    public bool IsYPositionLocked() => lockYPosition;
+
     // New public methods
     public void ForceResetPhysics()
     {
         rb.mass = originalMass;
         rb.linearDamping = originalDrag;
         rb.angularDamping = originalAngularDrag;
+
+        // NEW: Restore Y position constraint
+        rb.constraints =
+            RigidbodyConstraints.FreezePositionY
+            | RigidbodyConstraints.FreezeRotationX
+            | RigidbodyConstraints.FreezeRotationZ;
+
         Debug.Log("[PlayerController] Physics values manually reset.");
     }
 
@@ -572,9 +695,17 @@ public class PlayerController : MonoBehaviour
 
     public void ResetMomentum()
     {
-        rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
+        rb.linearVelocity = new Vector3(0f, 0f, 0f); // NEW: Ensure Y velocity is 0
         currentSpeed = 0f;
         isRecoveringFromCollision = false;
+
+        // NEW: Enforce Y position after momentum reset
+        if (lockYPosition)
+        {
+            Vector3 pos = transform.position;
+            pos.y = fixedYPosition;
+            transform.position = pos;
+        }
     }
 
     // New: Enable/disable movement (used by fuel system)
@@ -619,6 +750,19 @@ public class PlayerController : MonoBehaviour
             {
                 Gizmos.color = Color.red;
                 Gizmos.DrawWireCube(transform.position + Vector3.up * 2.5f, Vector3.one * 0.5f);
+            }
+
+            // NEW: Y position lock indicator
+            if (lockYPosition)
+            {
+                Gizmos.color = Color.yellow;
+                Vector3 lockLineStart = new Vector3(transform.position.x - 1f, fixedYPosition, transform.position.z - 1f);
+                Vector3 lockLineEnd = new Vector3(transform.position.x + 1f, fixedYPosition, transform.position.z + 1f);
+                Gizmos.DrawLine(lockLineStart, lockLineEnd);
+
+                lockLineStart = new Vector3(transform.position.x + 1f, fixedYPosition, transform.position.z - 1f);
+                lockLineEnd = new Vector3(transform.position.x - 1f, fixedYPosition, transform.position.z + 1f);
+                Gizmos.DrawLine(lockLineStart, lockLineEnd);
             }
         }
     }
