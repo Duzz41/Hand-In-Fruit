@@ -1,9 +1,10 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
+using System; // Action için gerekli
+using System.Collections.Generic;
 
 public class InventoryManager : MonoBehaviour
 {
+    // Singleton deseni için Instance
     private static InventoryManager _instance;
     public static InventoryManager Instance
     {
@@ -14,23 +15,23 @@ public class InventoryManager : MonoBehaviour
                 _instance = FindFirstObjectByType<InventoryManager>();
                 if (_instance == null)
                 {
-                    GameObject inventoryManagerObject = new GameObject("InventoryManager");
-                    _instance = inventoryManagerObject.AddComponent<InventoryManager>();
+                    GameObject inventoryObject = new GameObject("InventoryManager");
+                    _instance = inventoryObject.AddComponent<InventoryManager>();
                 }
             }
             return _instance;
         }
     }
 
+    // Envanteri tutan sözlük
     public Dictionary<string, int> inventory = new Dictionary<string, int>();
-    public bool showCollectionSphere = true;
 
-    // Events
+    // Kaynak toplandýðýnda dýþarýdan dinlenebilecek olay (event)
     public static event Action<string, int> OnResourceCollected;
     public static event Action<string, int> OnResourceUsed;
     public static event Action OnInventoryCleared;
 
-    private void Awake()
+    void Awake()
     {
         if (_instance != null && _instance != this)
         {
@@ -61,17 +62,13 @@ public class InventoryManager : MonoBehaviour
         {
             inventory[resourceType] = amount;
         }
+
+        // Kaynak toplandýðýnda OnResourceCollected event'ini çaðýr
         OnResourceCollected?.Invoke(resourceType, amount);
+
         Debug.Log($"Collected {resourceType}! Total: {inventory[resourceType]}");
     }
 
-    // Method to get current inventory count
-    public int GetResourceCount(string resourceType)
-    {
-        return inventory.ContainsKey(resourceType) ? inventory[resourceType] : 0;
-    }
-
-    // Method to use/consume resources
     public bool UseResource(string resourceType, int amount)
     {
         if (GetResourceCount(resourceType) >= amount)
@@ -81,8 +78,6 @@ public class InventoryManager : MonoBehaviour
             {
                 inventory.Remove(resourceType);
             }
-
-            // Invoke the event after successfully using the resource
             OnResourceUsed?.Invoke(resourceType, amount);
             Debug.Log($"Used {amount} {resourceType}! Remaining: {GetResourceCount(resourceType)}");
             return true;
@@ -94,24 +89,11 @@ public class InventoryManager : MonoBehaviour
         }
     }
 
-    // Method to display inventory in console
-    [ContextMenu("Show Inventory")]
-    public void ShowInventory()
+    public int GetResourceCount(string resourceType)
     {
-        Debug.Log("=== INVENTORY ===");
-        if (inventory.Count == 0)
-        {
-            Debug.Log("Inventory is empty");
-            return;
-        }
-        foreach (var item in inventory)
-        {
-            Debug.Log($"{item.Key}: {item.Value}");
-        }
+        return inventory.ContainsKey(resourceType) ? inventory[resourceType] : 0;
     }
 
-    // Method to clear all inventory
-    [ContextMenu("Clear Inventory")]
     public void ClearInventory()
     {
         inventory.Clear();
@@ -119,20 +101,24 @@ public class InventoryManager : MonoBehaviour
         Debug.Log("Inventory cleared!");
     }
 
-    // Get all resources as a copy of the dictionary
     public Dictionary<string, int> GetAllResources()
     {
         return new Dictionary<string, int>(inventory);
     }
 
-    // Visualize collection radius in scene view
-    void OnDrawGizmosSelected()
+    // Konsolda envanteri göstermek için metot
+    [ContextMenu("Show Inventory")]
+    public void ShowInventory()
     {
-        if (showCollectionSphere)
+        Debug.Log("=== INVENTORY ===");
+        if (inventory.Count == 0)
         {
-            float collectionRadius = 3f; // This should match the collection radius used in destructible objects
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(transform.position, collectionRadius);
+            Debug.Log("Inventory is empty!");
+            return;
+        }
+        foreach (var item in inventory)
+        {
+            Debug.Log($"{item.Key}: {item.Value}");
         }
     }
 }
