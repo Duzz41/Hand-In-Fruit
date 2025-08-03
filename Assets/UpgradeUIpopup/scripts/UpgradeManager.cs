@@ -39,7 +39,7 @@ public class UpgradeManager : MonoBehaviour
     private TMP_Text globalMoneyText;
     private Image fuelBarFillImage;
     private TMP_Text fuelAmountText;
-
+    public TMP_Text DrillLevelText;
     void Awake()
     {
         // Singleton uygulamasýnýn temel mantýðý
@@ -117,7 +117,11 @@ public class UpgradeManager : MonoBehaviour
     /// <returns>Maden satýþýndan kazanýlan toplam para.</returns>
     public int SellAllMines()
     {
-        int earned = collectedMinesCount * mineValue;
+        int stonenvalue = InventoryManager.Instance.GetResourceCount("Stone") * 50;
+        int ýronvalue = InventoryManager.Instance.GetResourceCount("Iron") * 100;
+        //int ýronvalue = InventoryManager.Instance.GetResourceCount("Gold") * 5;
+
+        int earned = stonenvalue + ýronvalue;
         AddMoney(earned);
         collectedMinesCount = 0;
         Debug.Log($"Tüm madenler satýldý. Kazanýlan: {earned} para.");
@@ -134,9 +138,10 @@ public class UpgradeManager : MonoBehaviour
         if (SpendMoney(cost))
         {
             drillPowerLevel++;
+            DrillLevelText.text = "DRIL LEVEL" + drillPowerLevel;
             Debug.Log($"Delme Gücü Seviye {drillPowerLevel}'e yükseltildi.");
             // UIManager'daki UI güncelleme metodunu çaðýr (varsayýmsal)
-            // UIManager.Instance?.UpdateDrillUpgradeUI(); 
+            //UIManager.Instance?.UpdateDrillUpgradeUI(); 
         }
     }
 
@@ -211,7 +216,7 @@ public class UpgradeManager : MonoBehaviour
     {
         if (globalMoneyText != null)
         {
-            globalMoneyText.text = "Para: " + currentMoney.ToString();
+            globalMoneyText.text = currentMoney.ToString();
         }
     }
 

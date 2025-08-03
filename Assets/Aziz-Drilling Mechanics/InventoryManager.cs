@@ -91,8 +91,8 @@ public class InventoryManager : MonoBehaviour
             return false;
         }
     }
-
-    [ContextMenu("Clear Inventory")]
+ 
+  
     public void ClearInventory()
     {
         inventory.Clear();

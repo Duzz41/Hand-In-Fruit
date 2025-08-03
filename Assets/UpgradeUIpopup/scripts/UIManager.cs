@@ -56,7 +56,7 @@ public class UIManager : MonoBehaviour
     {
         // Oyun baþladýðýnda tüm panelleri gizle
         if (sellPopupPanel != null) sellPopupPanel.SetActive(false);
-        if (upgradeScreenPanel != null) upgradeScreenPanel.SetActive(false);
+      //  if (upgradeScreenPanel != null) upgradeScreenPanel.SetActive(false);
         if (drillUpgradePopup != null) drillUpgradePopup.SetActive(false);
         if (fuelUpgradePopup != null) fuelUpgradePopup.SetActive(false);
         if (xrayUpgradePopup != null) xrayUpgradePopup.SetActive(false);
