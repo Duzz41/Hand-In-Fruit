@@ -6,57 +6,48 @@ public class PlayerController : MonoBehaviour
     [Header("Movement Settings")]
     [SerializeField]
     private float moveSpeed = 10f;
-
     [SerializeField]
     private float rotationSpeed = 100f;
-
     [SerializeField]
     private float acceleration = 5f;
-
     [SerializeField]
     private float deceleration = 8f;
 
     [Header("Physics Settings")]
     [SerializeField]
     private float maxVelocity = 15f;
-
     [SerializeField]
     private float dragCoefficient = 0.8f;
 
     [Header("Collision Recovery")]
     [SerializeField]
     private bool autoRecoverFromCollision = true;
-
     [SerializeField]
     private float recoveryForceMultiplier = 1.2f;
-
     [SerializeField]
     private float collisionRecoveryTime = 1f;
-
     [SerializeField]
     private float minCollisionForceForRecovery = 3f;
 
     [Header("Input Settings")]
     [SerializeField]
     private bool useBuiltInInput = true;
-
     [SerializeField]
     private bool useVirtualJoystick = true;
 
     [Header("Debug Settings")]
     [SerializeField]
     private bool debugVelocity = true;
-
     [SerializeField]
     private bool debugCollisions = true;
-
     [SerializeField]
     private float debugLogInterval = 0.5f;
 
     // Components
     private Rigidbody rb;
     private SimpleVirtualJoystick virtualJoystick;
-    private FuelSystem fuelSystem; // New: Fuel system reference
+    private FuelSystem fuelSystem;
+    private UpgradeManager upgradeManager; // UpgradeManager referansını ekleyin
 
     // Input variables
     private Vector2 joystickInput;
@@ -78,7 +69,6 @@ public class PlayerController : MonoBehaviour
     [Header("Audio Settings")]
     [SerializeField]
     private AudioClip engineSound;
-
     [SerializeField]
     private AudioClip drillSound;
 
@@ -96,9 +86,8 @@ public class PlayerController : MonoBehaviour
         InitializeComponents();
         SetupPhysics();
         BackupOriginalPhysicsValues();
-        // Ses kaynaklarını oluştur
+        SetupAudioSource();
 
-        // Find virtual joystick if using it
         if (useVirtualJoystick)
         {
             virtualJoystick = FindFirstObjectByType<SimpleVirtualJoystick>();
@@ -106,26 +95,48 @@ public class PlayerController : MonoBehaviour
 
         // Initialize fuel system integration
         InitializeFuelSystem();
-        SetupAudioSource();
+
+        // UpgradeManager instance'ını alıyoruz
+        upgradeManager = UpgradeManager.Instance;
+        if (upgradeManager == null)
+        {
+            Debug.LogError("UpgradeManager instance not found!");
+        }
+    }
+
+    void OnDestroy()
+    {
+        // Temizlik: Abonelikten çık
+        if (fuelSystem != null)
+        {
+            fuelSystem.OnFuelEmpty -= OnFuelEmpty;
+            fuelSystem.OnFuelRefilled -= OnFuelRefilled;
+        }
     }
 
     void SetupAudioSource()
     {
-        engineSource = gameObject.GetComponent<AudioSource>();
+        AudioSource[] sources = GetComponents<AudioSource>();
+        if (sources.Length < 2)
+        {
+            // İhtiyaç varsa yeni AudioSource ekle
+            engineSource = gameObject.AddComponent<AudioSource>();
+            sfxSource = gameObject.AddComponent<AudioSource>();
+        }
+        else
+        {
+            engineSource = sources[0];
+            sfxSource = sources[1];
+        }
+
         engineSource.clip = engineSound;
         engineSource.loop = true;
         engineSource.playOnAwake = false;
-        engineSource.spatialBlend = 0f; // 2D ses
-
-        sfxSource = gameObject.GetComponent<AudioSource>();
+        engineSource.spatialBlend = 0f;
 
         sfxSource.loop = false;
         sfxSource.playOnAwake = false;
         sfxSource.spatialBlend = 0f;
-
-        // Ses kaynaklarını SoundManager'a kayıt et
-        // SoundManager.instance.RegisterAudioSource(engineSource);
-        //   SoundManager.instance.RegisterAudioSource(sfxSource);
     }
 
     void InitializeComponents()
@@ -141,9 +152,7 @@ public class PlayerController : MonoBehaviour
         fuelSystem = GetComponent<FuelSystem>();
         if (fuelSystem == null)
         {
-            Debug.LogWarning(
-                "[PlayerController] FuelSystem component not found. Movement will not be restricted by fuel."
-            );
+            Debug.LogWarning("[PlayerController] FuelSystem component not found. Movement will not be restricted by fuel.");
         }
     }
 
@@ -188,7 +197,6 @@ public class PlayerController : MonoBehaviour
         MonitorPhysicsValues();
         HandleEngineSound();
 
-        // Debug velocity logging
         if (debugVelocity && Time.time - lastDebugTime >= debugLogInterval)
         {
             DebugVelocityInfo();
@@ -198,7 +206,6 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        // Check if player can move (not out of fuel)
         if (canMove)
         {
             ApplyMovement();
@@ -206,7 +213,6 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            // If out of fuel, gradually stop the player
             ApplyFuelEmptyDeceleration();
         }
 
@@ -230,20 +236,17 @@ public class PlayerController : MonoBehaviour
         Vector2 keyboardInput = Vector2.zero;
         Vector2 joystickInputFromUI = Vector2.zero;
 
-        // Get keyboard input
         if (useBuiltInInput)
         {
             keyboardInput.x = Input.GetAxis("Horizontal");
             keyboardInput.y = Input.GetAxis("Vertical");
         }
 
-        // Get virtual joystick input
         if (useVirtualJoystick && virtualJoystick != null)
         {
             joystickInputFromUI = virtualJoystick.GetInputVector();
         }
 
-        // Combine inputs
         if (joystickInputFromUI.magnitude > 0.1f)
         {
             joystickInput = joystickInputFromUI;
@@ -258,12 +261,9 @@ public class PlayerController : MonoBehaviour
 
     void CalculateMovement()
     {
-        //moveDirection = new Vector3(joystickInput.x, 0f, joystickInput.y);
-        //float targetSpeed = moveDirection.magnitude * moveSpeed;
         moveDirection = new Vector3(-joystickInput.y, 0f, joystickInput.x);
         float targetSpeed = moveDirection.magnitude * moveSpeed;
 
-        // Only calculate movement if player can move
         if (canMove && moveDirection.magnitude > 0.1f)
         {
             float currentAcceleration = isRecoveringFromCollision
@@ -277,7 +277,6 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            // Decelerate when not moving or out of fuel
             float currentDeceleration = isRecoveringFromCollision
                 ? deceleration * 0.5f
                 : deceleration;
@@ -295,11 +294,7 @@ public class PlayerController : MonoBehaviour
     {
         if (isRecoveringFromCollision)
         {
-            Vector3 currentHorizontalVelocity = new Vector3(
-                rb.linearVelocity.x,
-                0f,
-                rb.linearVelocity.z
-            );
+            Vector3 currentHorizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             Vector3 preservedMomentum = preCollisionVelocity * momentumPreservation;
             Vector3 blendedVelocity = Vector3.Lerp(
                 currentHorizontalVelocity,
@@ -315,8 +310,7 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            Vector3 velocityDifference =
-                targetVelocity - new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            Vector3 velocityDifference = targetVelocity - new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             Vector3 forceToApply = velocityDifference * rb.mass * acceleration;
             forceToApply = Vector3.ClampMagnitude(forceToApply, rb.mass * moveSpeed * 2f);
             rb.AddForce(forceToApply, ForceMode.Force);
@@ -325,12 +319,7 @@ public class PlayerController : MonoBehaviour
 
     void ApplyFuelEmptyDeceleration()
     {
-        // Gradually slow down the player when out of fuel
-        Vector3 currentHorizontalVelocity = new Vector3(
-            rb.linearVelocity.x,
-            0f,
-            rb.linearVelocity.z
-        );
+        Vector3 currentHorizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         Vector3 deceleratedVelocity = Vector3.Lerp(
             currentHorizontalVelocity,
             Vector3.zero,
@@ -341,27 +330,13 @@ public class PlayerController : MonoBehaviour
             rb.linearVelocity.y,
             deceleratedVelocity.z
         );
-
-        // Also reduce current speed
         currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, deceleration * Time.deltaTime * 2f);
     }
-
-    //void ApplyRotation()
-    //{
-    //    if (moveDirection.magnitude > 0.1f && currentSpeed > 0.5f && canMove)
-    //    {
-    //        Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-    //        float rotationStep = rotationSpeed * Time.fixedDeltaTime;
-    //        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationStep);
-    //    }
-    //}
 
     void ApplyRotation()
     {
         if (moveDirection.magnitude > 0.1f && currentSpeed > 0.5f && canMove)
         {
-            // The vector for LookRotation needs the horizontal axis to be non-inverted
-            // to ensure the player turns in the correct direction.
             Vector3 lookDirection = new Vector3(moveDirection.x, 0f, moveDirection.z);
             Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
             float rotationStep = rotationSpeed * Time.fixedDeltaTime;
@@ -419,9 +394,7 @@ public class PlayerController : MonoBehaviour
         {
             if (debugCollisions)
             {
-                Debug.LogWarning(
-                    $"[PlayerController] Mass changed from {originalMass} to {rb.mass}. Resetting."
-                );
+                Debug.LogWarning($"[PlayerController] Mass changed from {originalMass} to {rb.mass}. Resetting.");
             }
             rb.mass = originalMass;
         }
@@ -430,9 +403,7 @@ public class PlayerController : MonoBehaviour
         {
             if (debugCollisions)
             {
-                Debug.LogWarning(
-                    $"[PlayerController] Linear damping changed from {originalDrag} to {rb.linearDamping}. Resetting."
-                );
+                Debug.LogWarning($"[PlayerController] Linear damping changed from {originalDrag} to {rb.linearDamping}. Resetting.");
             }
             rb.linearDamping = originalDrag;
         }
@@ -441,39 +412,32 @@ public class PlayerController : MonoBehaviour
         {
             if (debugCollisions)
             {
-                Debug.LogWarning(
-                    $"[PlayerController] Angular damping changed from {originalAngularDrag} to {rb.angularDamping}. Resetting."
-                );
+                Debug.LogWarning($"[PlayerController] Angular damping changed from {originalAngularDrag} to {rb.angularDamping}. Resetting.");
             }
             rb.angularDamping = originalAngularDrag;
         }
     }
 
-    // Collision detection - Updated to work with fuel system
     void OnCollisionEnter(Collision collision)
     {
         if (debugCollisions)
         {
             Debug.Log(
                 $"[PlayerController] Collision with {collision.gameObject.name}. "
-                    + $"Impact force: {collision.impulse.magnitude:F2}"
+                + $"Impact force: {collision.impulse.magnitude:F2}"
             );
         }
 
-        // Notify fuel system about wall collision
         if (fuelSystem != null)
         {
             fuelSystem.OnWallCollision(collision);
         }
 
-        // SFX: Çarpışma sesi sadece belirli kuvvetin üstünde olunca çalsın
-        // SFX: Çarpışma sesi sadece belirli kuvvetin üstünde olunca çalsın
         if (collision.relativeVelocity.magnitude > 2f)
         {
             SoundCallManager.instance.PlayOneShot("SFXSound", drillSound);
         }
 
-        // Eğer otomatik kurtarma açıksa ve çarpışma yeterince güçlüyse
         if (
             autoRecoverFromCollision
             && collision.relativeVelocity.magnitude > minCollisionForceForRecovery
@@ -494,7 +458,6 @@ public class PlayerController : MonoBehaviour
 
     void OnCollisionStay(Collision collision)
     {
-        // Continue notifying fuel system while colliding
         if (fuelSystem != null)
         {
             fuelSystem.OnWallCollision(collision);
@@ -507,7 +470,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // Fuel system event handlers
     void OnFuelEmpty()
     {
         canMove = false;
@@ -531,35 +493,40 @@ public class PlayerController : MonoBehaviour
         Vector3 currentVelocity = rb.linearVelocity;
         Vector3 horizontalVelocity = new Vector3(currentVelocity.x, 0f, currentVelocity.z);
 
+        // Yakıt seviyesi bilgisini artık UpgradeManager'dan alıyoruz
+        string fuelLevel = "";
+        if (upgradeManager != null)
+        {
+            fuelLevel = $" Fuel: {upgradeManager.currentFuel:F1}/{upgradeManager.maxFuelCapacity:F1}";
+        }
+        else
+        {
+            fuelLevel = " Fuel: N/A";
+        }
+
         string recoveryStatus = isRecoveringFromCollision ? " [RECOVERING]" : "";
         string fuelStatus = !canMove ? " [NO FUEL]" : "";
-        string fuelLevel =
-            fuelSystem != null
-                ? $" Fuel: {fuelSystem.GetCurrentFuel():F1}/{fuelSystem.GetMaxFuel()}"
-                : "";
 
         Debug.Log(
             $"[PlayerController] Current Velocity: {currentVelocity} | "
-                + $"Horizontal Speed: {horizontalVelocity.magnitude:F2} | "
-                + $"Target Speed: {currentSpeed:F2} | "
-                + $"Moving: {IsMoving()}{recoveryStatus}{fuelStatus}{fuelLevel}"
+            + $"Horizontal Speed: {horizontalVelocity.magnitude:F2} | "
+            + $"Target Speed: {currentSpeed:F2} | "
+            + $"Moving: {IsMoving()}{recoveryStatus}{fuelStatus}{fuelLevel}"
         );
     }
 
     // Public methods - Updated
-    public void SetJoystickInput(Vector2 input) { }
-
-    public void SetJoystickInput(float x, float y) { }
-
-    public float GetCurrentSpeed() => currentSpeed;
+    public void SetJoystickInput(Vector2 input)
+    {
+        joystickInput = input;
+    }
 
     public Vector2 GetJoystickInput() => joystickInput;
 
     public bool IsMoving() => currentSpeed > 0.1f;
 
-    public bool CanMove() => canMove; // New: Check if player can move
+    public bool CanMove() => canMove;
 
-    // New public methods
     public void ForceResetPhysics()
     {
         rb.mass = originalMass;
@@ -577,20 +544,9 @@ public class PlayerController : MonoBehaviour
         isRecoveringFromCollision = false;
     }
 
-    // New: Enable/disable movement (used by fuel system)
     public void SetMovementEnabled(bool enabled)
     {
         canMove = enabled;
-    }
-
-    // Cleanup
-    void OnDestroy()
-    {
-        if (fuelSystem != null)
-        {
-            fuelSystem.OnFuelEmpty -= OnFuelEmpty;
-            fuelSystem.OnFuelRefilled -= OnFuelRefilled;
-        }
     }
 
     // Debug visualization - Updated
@@ -598,23 +554,19 @@ public class PlayerController : MonoBehaviour
     {
         if (Application.isPlaying && rb != null)
         {
-            // Movement direction
             Gizmos.color = canMove ? Color.green : Color.red;
             Gizmos.DrawLine(transform.position, transform.position + moveDirection * 3f);
 
-            // Velocity direction
             Gizmos.color = Color.blue;
             Vector3 velocityDirection = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             Gizmos.DrawLine(transform.position, transform.position + velocityDirection);
 
-            // Recovery mode indicator
             if (isRecoveringFromCollision)
             {
                 Gizmos.color = Color.red;
                 Gizmos.DrawWireSphere(transform.position + Vector3.up * 2f, 0.5f);
             }
 
-            // No fuel indicator
             if (!canMove)
             {
                 Gizmos.color = Color.red;
@@ -623,3 +575,4 @@ public class PlayerController : MonoBehaviour
         }
     }
 }
+

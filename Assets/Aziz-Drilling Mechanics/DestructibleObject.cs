@@ -45,7 +45,7 @@ public class DestructibleObject : MonoBehaviour
     public void DoThisWhenBrokenIntoPieces()
     {
         InventoryManager.Instance.CollectResource(resourceType, resourceValue);
-        InventoryManager.Instance.ShowInventory();
+       
 
         CollectNearbyDebris();
         AddRandomForceToChildren(minRandomForceAmount, maxRandomForceAmount);

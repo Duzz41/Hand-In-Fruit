@@ -17,7 +17,8 @@ public class SellAreaHandler : MonoBehaviour
             Debug.Log($"Oyuncu Aracı ({other.gameObject.name}) Satış Alanına Girdi. Madenler satılıyor...", this);
 
             // Pop-up açmak yerine direkt satış işlemini yap
-            int earnedMoney = UpgradeManager.Instance.SellAllResources();
+            int earnedMoney = UpgradeManager.Instance.SellAllMines();
+            InventoryManager.Instance.ClearInventory();
         }
     }
 
