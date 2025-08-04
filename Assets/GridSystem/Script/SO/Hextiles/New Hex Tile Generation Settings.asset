@@ -15,7 +15,7 @@ MonoBehaviour:
   defaultVisibleMaterial: {fileID: -3033667219593020291, guid: eb2cf7c49babeb14b9ca8b06a2e48512, type: 3}
   defaultHiddenMaterial: {fileID: 2100000, guid: d217bca38ab3a9d4cab7574a5ec38b97, type: 2}
   xrayNormalMaterial: {fileID: 2100000, guid: bb149cfa893c3744c8370e64f4e791b3, type: 2}
-  xrayValuableMaterial: {fileID: 2100000, guid: d217bca38ab3a9d4cab7574a5ec38b97, type: 2}
+  xrayValuableMaterial: {fileID: 2100000, guid: a8b2522366923e546bd8a480818d406c, type: 2}
   useValuableResourceSettings: 1
   valuableResourceTypes: 010000000300000004000000
   stonePrefab: {fileID: 6488901961342639277, guid: e9265daaa4bd79d4d8202b9f252d3c9f, type: 3}

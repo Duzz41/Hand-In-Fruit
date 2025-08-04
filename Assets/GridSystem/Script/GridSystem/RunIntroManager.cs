@@ -9,6 +9,9 @@ public class RunIntroManager : MonoBehaviour
     public Transform mountain;
     public MapChunkSpawner chunkSpawner;
 
+    [SerializeField]
+    GameObject MountainModel;
+
     [Header("Konumlar")]
     public Transform doorStartPos;
     public Transform doorOpenPos;
@@ -38,6 +41,7 @@ public class RunIntroManager : MonoBehaviour
     IEnumerator IntroSequence()
     {
         // Kapı yukarı çıkar
+        MountainModel.SetActive(true);
         playerController.SetMovementEnabled(false);
         door.DOMove(doorOpenPos.position, doorMoveDuration);
         yield return new WaitForSeconds(doorMoveDuration);
