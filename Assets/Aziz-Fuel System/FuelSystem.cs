@@ -233,7 +233,8 @@ public class FuelSystem : MonoBehaviour
             {
                 if (introManager != null)
                 {
-                    introManager.PlayIntro();
+                    if (introManager.hasStarted == true)
+                        introManager.PlayIntro();
                 }
             }
         }
@@ -344,7 +345,8 @@ public class FuelSystem : MonoBehaviour
         // 🔁 Chunk'ları yeniden spawn et
         if (introManager != null)
         {
-            introManager.PlayIntro();
+            if (introManager.hasStarted == true)
+                introManager.PlayIntro();
         }
 
         if (debugFuel)

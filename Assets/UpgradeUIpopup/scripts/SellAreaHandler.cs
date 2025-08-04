@@ -1,5 +1,6 @@
-using UnityEngine;
 using TMPro;
+using UnityEngine;
+
 // Bu script'i sarı Sell plane'e ekleyin.
 // Collider'ı Is Trigger olarak işaretlemeyi unutmayın.
 [RequireComponent(typeof(Collider))]
@@ -7,12 +8,15 @@ public class SellAreaHandler : MonoBehaviour
 {
     [Tooltip("Bu tetikleyiciyi aktif edecek GameObject'in Tag'i (genellikle 'Player').")]
     public string playerTag = "Player";
+
     [Header("Optional UI Feedback")]
     [Tooltip("Satış işlemi sırasında gösterilecek mesaj (isteğe bağlı).")]
     public TMP_Text sellFeedbackText;
+
     [Tooltip("Feedback mesajının ne kadar süre gösterileceği (saniye).")]
     public float feedbackDisplayTime = 2f;
     private Coroutine feedbackCoroutine;
+
     void Start()
     {
         // Collider'ın trigger olup olmadığını kontrol et
@@ -28,6 +32,7 @@ public class SellAreaHandler : MonoBehaviour
             sellFeedbackText.gameObject.SetActive(false);
         }
     }
+
     void OnTriggerEnter(Collider other)
     {
         // Giren objenin etiketini ve gerekli manager'ların varlığını kontrol et
@@ -50,6 +55,7 @@ public class SellAreaHandler : MonoBehaviour
             PerformSellOperation();
         }
     }
+
     void OnTriggerExit(Collider other)
     {
         if (other.CompareTag(playerTag))
@@ -66,6 +72,7 @@ public class SellAreaHandler : MonoBehaviour
             }
         }
     }
+
     /// <summary>
     /// Satış işlemini gerçekleştirir ve gerekli UI güncellemelerini yapar.
     /// </summary>
@@ -104,6 +111,7 @@ public class SellAreaHandler : MonoBehaviour
             Debug.LogError($"Satış işlemi sırasında hata oluştu: {e.Message}");
         }
     }
+
     /// <summary>
     /// Satış feedback mesajını gösterir.
     /// </summary>
@@ -123,6 +131,7 @@ public class SellAreaHandler : MonoBehaviour
             feedbackCoroutine = StartCoroutine(HideFeedbackAfterDelay());
         }
     }
+
     /// <summary>
     /// Belirli süre sonra feedback mesajını gizler.
     /// </summary>
@@ -134,6 +143,7 @@ public class SellAreaHandler : MonoBehaviour
             sellFeedbackText.gameObject.SetActive(false);
         }
     }
+
     /// <summary>
     /// Sell popup'ını gecikmeli kapatır (Invoke ile çağrılır).
     /// </summary>

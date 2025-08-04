@@ -1,6 +1,8 @@
 using System.Collections;
-using DG.Tweening; // DOTween varsa
+using DG.Tweening;
+using Unity.Cinemachine;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class RunIntroManager : MonoBehaviour
 {
@@ -8,59 +10,92 @@ public class RunIntroManager : MonoBehaviour
     public Transform door;
     public Transform mountain;
     public MapChunkSpawner chunkSpawner;
-
-    [SerializeField]
-    GameObject MountainModel;
+    public PlayerController playerController;
+    public CinemachineBrain cinemachineCamera;
+    public GameObject startButton;
+    public GameObject MountainModel;
 
     [Header("Konumlar")]
     public Transform doorStartPos;
     public Transform doorOpenPos;
-
     public Transform mountainUpPos;
     public Transform mountainDownPos;
 
-    [Header("Süreler")]
-    public float doorMoveDuration = 1.5f;
-    public float mountainMoveDuration = 1.5f;
+    [Header("Kamera Ayarı")]
+    public Vector3 cameraIntroPosition;
+    public Vector3 cameraIntroRotation;
+    public float cameraTransitionDuration = 2f;
 
-    private PlayerController playerController;
+    public bool hasStarted = false;
 
     void Start()
     {
-        playerController = FindObjectOfType<PlayerController>();
-        StartCoroutine(IntroSequence());
+        // Başlangıç pozisyonlarını ayarla
+        door.position = doorStartPos.position;
+        mountain.position = mountainDownPos.position;
+
+        // Oyuncu hareketini devre dışı bırak
+        playerController.SetMovementEnabled(false);
+
+        // Kamerayı başlangıç açısına ayarla
+        cinemachineCamera.transform.position = cameraIntroPosition;
+        cinemachineCamera.transform.rotation = Quaternion.Euler(cameraIntroRotation);
     }
 
     public void PlayIntro()
     {
-        Debug.Log("[RunIntroManager] Başlangıç sekansı başlatıldı!");
-        StartCoroutine(IntroSequence());
-        // Burada animasyon oynatma, UI, fade vs yapılabilir
+        StartCoroutine(StartIntroSequence());
     }
 
-    IEnumerator IntroSequence()
+    private IEnumerator StartIntroSequence()
     {
-        // Kapı yukarı çıkar
-        MountainModel.SetActive(true);
-        playerController.SetMovementEnabled(false);
-        door.DOMove(doorOpenPos.position, doorMoveDuration);
-        yield return new WaitForSeconds(doorMoveDuration);
+        if (hasStarted)
+            yield break;
 
-        // Dağ aşağı iner
-        mountain.DOMove(mountainDownPos.position, mountainMoveDuration);
-        yield return new WaitForSeconds(mountainMoveDuration);
+        hasStarted = true;
+        Debug.Log("▶ Intro Sequence başladı");
 
-        // Chunk’lar spawn olur
+        // 1. Start butonunu kapat
+        if (startButton != null)
+        {
+            startButton.SetActive(false);
+            Debug.Log("⛔ Start butonu kapatıldı");
+        }
+
+        // 2. Kamera hareketi
+        Debug.Log("📷 Kamera hareketi başlıyor");
+        var cameraMove = cinemachineCamera.transform.DOMove(
+            cameraIntroPosition,
+            cameraTransitionDuration
+        );
+        var cameraRotate = cinemachineCamera.transform.DORotate(
+            cameraIntroRotation,
+            cameraTransitionDuration
+        );
+
+        yield return cameraMove.WaitForCompletion();
+        yield return cameraRotate.WaitForCompletion();
+
+        // 3. Dağ yukarı çıkıyor
+        Debug.Log("⛰️ Dağ yukarı çıkıyor");
+        yield return mountain
+            .DOMove(mountainUpPos.position, 1f)
+            .SetEase(Ease.OutCubic)
+            .WaitForCompletion();
+
+        // 4. Kapı açılıyor
+        Debug.Log("🚪 Kapı açılıyor");
+        yield return door.DOMove(doorOpenPos.position, 1f)
+            .SetEase(Ease.InOutQuad)
+            .WaitForCompletion();
+
+        // 5. Harita spawn ediliyor
+        Debug.Log("🗺️ Harita spawn ediliyor");
         chunkSpawner.SpawnChunks();
 
-        // Dağ yukarı çıkar
-        mountain.DOMove(mountainUpPos.position, mountainMoveDuration);
-        yield return new WaitForSeconds(mountainMoveDuration);
+        // 6. Oyuncu kontrolü açılıyor
+        yield return new WaitForSeconds(0.5f); // Küçük bir bekleme
+        Debug.Log("🎮 Oyuncu kontrolü açıldı");
         playerController.SetMovementEnabled(true);
-        // Kapı aşağı iner
-        door.DOMove(doorStartPos.position, doorMoveDuration);
-        yield return new WaitForSeconds(doorMoveDuration);
-
-        Debug.Log("Intro bitti, oyun başlıyor.");
     }
 }

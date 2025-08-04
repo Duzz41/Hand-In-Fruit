@@ -178,7 +178,8 @@ public class PlayerController : MonoBehaviour
         Vector3 currentVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         if (currentVelocity.magnitude > 0.1f)
         {
-            Vector3 decelerationForce = -currentVelocity.normalized * rb.mass * drillingDeceleration;
+            Vector3 decelerationForce =
+                -currentVelocity.normalized * rb.mass * drillingDeceleration;
             if (lockYPosition)
             {
                 decelerationForce.y = 0f;
@@ -346,7 +347,8 @@ public class PlayerController : MonoBehaviour
     // From Version 2: Enforce Y position locking
     void EnforceYPositionLock()
     {
-        if (!lockYPosition) return;
+        if (!lockYPosition)
+            return;
 
         // Force Y position in transform
         Vector3 currentPos = transform.position;
@@ -384,11 +386,11 @@ public class PlayerController : MonoBehaviour
     {
         if (IsMoving() && !engineSource.isPlaying && CanMove())
         {
-            SoundCallManager.instance.PlaySound("EngineSound");
+            //SoundCallManager.instance.PlaySound("EngineSound");
         }
         else if ((!IsMoving() || !CanMove()) && engineSource.isPlaying)
         {
-            SoundCallManager.instance.StopSound("EngineSound");
+            // SoundCallManager.instance.StopSound("EngineSound");
         }
     }
 
@@ -640,7 +642,9 @@ public class PlayerController : MonoBehaviour
             rb.constraints |= RigidbodyConstraints.FreezePositionY;
             if (debugCollisions)
             {
-                Debug.LogWarning("[PlayerController] Y position constraint was removed. Restoring.");
+                Debug.LogWarning(
+                    "[PlayerController] Y position constraint was removed. Restoring."
+                );
             }
         }
     }
@@ -674,7 +678,9 @@ public class PlayerController : MonoBehaviour
 
                 if (debugCollisions)
                 {
-                    Debug.Log($"[PlayerController] Drilling started. Collision count: {continuousCollisionCount}");
+                    Debug.Log(
+                        $"[PlayerController] Drilling started. Collision count: {continuousCollisionCount}"
+                    );
                 }
             }
         }
@@ -768,7 +774,8 @@ public class PlayerController : MonoBehaviour
         if (upgradeManager != null)
         {
             // From Version 1: UpgradeManager approach
-            fuelLevel = $" Fuel: {upgradeManager.currentFuel:F1}/{upgradeManager.maxFuelCapacity:F1}";
+            fuelLevel =
+                $" Fuel: {upgradeManager.currentFuel:F1}/{upgradeManager.maxFuelCapacity:F1}";
         }
         else if (fuelSystem != null)
         {
@@ -922,12 +929,28 @@ public class PlayerController : MonoBehaviour
             if (lockYPosition)
             {
                 Gizmos.color = Color.yellow;
-                Vector3 lockLineStart = new Vector3(transform.position.x - 1f, fixedYPosition, transform.position.z - 1f);
-                Vector3 lockLineEnd = new Vector3(transform.position.x + 1f, fixedYPosition, transform.position.z + 1f);
+                Vector3 lockLineStart = new Vector3(
+                    transform.position.x - 1f,
+                    fixedYPosition,
+                    transform.position.z - 1f
+                );
+                Vector3 lockLineEnd = new Vector3(
+                    transform.position.x + 1f,
+                    fixedYPosition,
+                    transform.position.z + 1f
+                );
                 Gizmos.DrawLine(lockLineStart, lockLineEnd);
 
-                lockLineStart = new Vector3(transform.position.x + 1f, fixedYPosition, transform.position.z - 1f);
-                lockLineEnd = new Vector3(transform.position.x - 1f, fixedYPosition, transform.position.z + 1f);
+                lockLineStart = new Vector3(
+                    transform.position.x + 1f,
+                    fixedYPosition,
+                    transform.position.z - 1f
+                );
+                lockLineEnd = new Vector3(
+                    transform.position.x - 1f,
+                    fixedYPosition,
+                    transform.position.z + 1f
+                );
                 Gizmos.DrawLine(lockLineStart, lockLineEnd);
             }
         }

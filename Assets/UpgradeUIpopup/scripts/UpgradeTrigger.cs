@@ -1,88 +1,109 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
-using TMPro;
+
 [RequireComponent(typeof(Collider))]
 public class UpgradeTrigger : MonoBehaviour
 {
-    [Tooltip("Bu tetikleyici alaný aktif edecek GameObject'in Tag'i (genellikle 'Player').")]
+    [Tooltip("Bu tetikleyici alanï¿½ aktif edecek GameObject'in Tag'i (genellikle 'Player').")]
     public string playerTag = "Player";
+
     [Header("Unity Events")]
-    [Tooltip("Oyuncu trigger alanýna girdiðinde çaðrýlacak event'ler.")]
+    [Tooltip("Oyuncu trigger alanï¿½na girdiï¿½inde ï¿½aï¿½rï¿½lacak event'ler.")]
     public UnityEvent onPlayerEnter;
-    [Tooltip("Oyuncu trigger alanýndan çýktýðýnda çaðrýlacak event'ler.")]
+
+    [Tooltip("Oyuncu trigger alanï¿½ndan ï¿½ï¿½ktï¿½ï¿½ï¿½nda ï¿½aï¿½rï¿½lacak event'ler.")]
     public UnityEvent onPlayerExit;
+
     [Header("Upgrade Screen Settings")]
-    [Tooltip("Oyuncu alanýna girdiðinde upgrade ekranýný otomatik aç.")]
+    [Tooltip("Oyuncu alanï¿½na girdiï¿½inde upgrade ekranï¿½nï¿½ otomatik aï¿½.")]
     public bool autoOpenUpgradeScreen = true;
-    [Tooltip("Oyuncu alanýndan çýktýðýnda upgrade ekranýný otomatik kapat.")]
+
+    [Tooltip("Oyuncu alanï¿½ndan ï¿½ï¿½ktï¿½ï¿½ï¿½nda upgrade ekranï¿½nï¿½ otomatik kapat.")]
     public bool autoCloseUpgradeScreen = true;
+
     [Header("Optional UI Feedback")]
-    [Tooltip("Oyuncuya gösterilecek bilgi mesajý (isteðe baðlý).")]
+    [Tooltip("Oyuncuya gï¿½sterilecek bilgi mesajï¿½ (isteï¿½e baï¿½lï¿½).")]
     public TMP_Text infoText;
-    [Tooltip("Oyuncu alanýnda iken gösterilecek mesaj.")]
-    public string enterMessage = "Yükseltme Alaný - E tuþuna basýn";
-    [Tooltip("Oyuncu alanýndan çýkarken gösterilecek mesaj.")]
+
+    [Tooltip("Oyuncu alanï¿½nda iken gï¿½sterilecek mesaj.")]
+    public string enterMessage = "Yï¿½kseltme Alanï¿½ - E tuï¿½una basï¿½n";
+
+    [Tooltip("Oyuncu alanï¿½ndan ï¿½ï¿½karken gï¿½sterilecek mesaj.")]
     public string exitMessage = "";
+
     [Header("Key Input Settings")]
-    [Tooltip("Upgrade ekranýný açmak için kullanýlacak tuþ.")]
+    [Tooltip("Upgrade ekranï¿½nï¿½ aï¿½mak iï¿½in kullanï¿½lacak tuï¿½.")]
     public KeyCode upgradeKey = KeyCode.E;
-    [Tooltip("Tuþ ile upgrade ekraný kontrolü aktif mi?")]
+
+    [Tooltip("Tuï¿½ ile upgrade ekranï¿½ kontrolï¿½ aktif mi?")]
     public bool useKeyInput = true;
-    // Private deðiþkenler
+
+    // Private deï¿½iï¿½kenler
     private bool playerInArea = false;
     private Collider triggerCollider;
+
     void Start()
     {
-        // Collider referansýný al ve ayarlarýný kontrol et
+        // Collider referansï¿½nï¿½ al ve ayarlarï¿½nï¿½ kontrol et
         triggerCollider = GetComponent<Collider>();
         if (triggerCollider == null)
         {
-            Debug.LogError("UpgradeTrigger: Collider bileþeni bulunamadý!", this);
+            Debug.LogError("UpgradeTrigger: Collider bileï¿½eni bulunamadï¿½!", this);
             return;
         }
-        // Collider'ýn trigger olup olmadýðýný kontrol et ve gerekirse düzelt
+        // Collider'ï¿½n trigger olup olmadï¿½ï¿½ï¿½nï¿½ kontrol et ve gerekirse dï¿½zelt
         if (!triggerCollider.isTrigger)
         {
-            Debug.LogWarning("UpgradeTrigger: Collider 'Is Trigger' olarak ayarlanmalý! Otomatik düzeltiliyor.", this);
+            Debug.LogWarning(
+                "UpgradeTrigger: Collider 'Is Trigger' olarak ayarlanmalï¿½! Otomatik dï¿½zeltiliyor.",
+                this
+            );
             triggerCollider.isTrigger = true;
         }
-        // Info text'i baþlangýçta gizle
+        // Info text'i baï¿½langï¿½ï¿½ta gizle
         if (infoText != null)
         {
             infoText.gameObject.SetActive(false);
         }
-        // Event'ler null ise baþlat
+        // Event'ler null ise baï¿½lat
         if (onPlayerEnter == null)
             onPlayerEnter = new UnityEvent();
         if (onPlayerExit == null)
             onPlayerExit = new UnityEvent();
     }
+
     void Update()
     {
-        // Oyuncu alandaysa ve tuþ kontrolü aktifse
+        // Oyuncu alandaysa ve tuï¿½ kontrolï¿½ aktifse
         if (playerInArea && useKeyInput && Input.GetKeyDown(upgradeKey))
         {
             ToggleUpgradeScreen();
         }
     }
+
     void OnValidate()
     {
-        // Editor'da Collider ayarlarýný kontrol et
+        // Editor'da Collider ayarlarï¿½nï¿½ kontrol et
         Collider col = GetComponent<Collider>();
         if (col != null && !col.isTrigger)
         {
-            Debug.LogWarning("UpgradeTrigger script'ini kullanan objenin Collider'ý 'Is Trigger' olarak ayarlanmalý.", this);
+            Debug.LogWarning(
+                "UpgradeTrigger script'ini kullanan objenin Collider'ï¿½ 'Is Trigger' olarak ayarlanmalï¿½.",
+                this
+            );
         }
     }
+
     void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag(playerTag))
         {
-            Debug.Log($"Oyuncu ({other.gameObject.name}) yükseltme alanýna girdi.", this);
+            Debug.Log($"Oyuncu ({other.gameObject.name}) yï¿½kseltme alanï¿½na girdi.", this);
             playerInArea = true;
-            // Info mesajýný göster
+            // Info mesajï¿½nï¿½ gï¿½ster
             ShowInfoMessage(enterMessage);
-            // Otomatik upgrade ekraný açma
+            // Otomatik upgrade ekranï¿½ aï¿½ma
             if (autoOpenUpgradeScreen && UIManager.Instance != null)
             {
                 UIManager.Instance.OpenUpgradeScreen();
@@ -91,24 +112,25 @@ public class UpgradeTrigger : MonoBehaviour
             onPlayerEnter.Invoke();
         }
     }
+
     void OnTriggerExit(Collider other)
     {
         if (other.CompareTag(playerTag))
         {
-            Debug.Log($"Oyuncu ({other.gameObject.name}) yükseltme alanýndan çýktý.", this);
+            Debug.Log($"Oyuncu ({other.gameObject.name}) yï¿½kseltme alanï¿½ndan ï¿½ï¿½ktï¿½.", this);
             playerInArea = false;
-            // Info mesajýný gizle veya çýkýþ mesajýný göster
+            // Info mesajï¿½nï¿½ gizle veya ï¿½ï¿½kï¿½ï¿½ mesajï¿½nï¿½ gï¿½ster
             if (!string.IsNullOrEmpty(exitMessage))
             {
                 ShowInfoMessage(exitMessage);
-                // 1 saniye sonra mesajý gizle
+                // 1 saniye sonra mesajï¿½ gizle
                 Invoke(nameof(HideInfoMessage), 1f);
             }
             else
             {
                 HideInfoMessage();
             }
-            // Otomatik upgrade ekraný kapatma
+            // Otomatik upgrade ekranï¿½ kapatma
             if (autoCloseUpgradeScreen && UIManager.Instance != null)
             {
                 UIManager.Instance.CloseUpgradeScreen();
@@ -117,34 +139,37 @@ public class UpgradeTrigger : MonoBehaviour
             onPlayerExit.Invoke();
         }
     }
+
     /// <summary>
-    /// Upgrade ekranýný aç/kapat iþlemi yapar.
+    /// Upgrade ekranï¿½nï¿½ aï¿½/kapat iï¿½lemi yapar.
     /// </summary>
     private void ToggleUpgradeScreen()
     {
         if (UIManager.Instance == null)
         {
-            Debug.LogWarning("UIManager.Instance bulunamadý! Upgrade ekraný açýlamýyor.");
+            Debug.LogWarning("UIManager.Instance bulunamadï¿½! Upgrade ekranï¿½ aï¿½ï¿½lamï¿½yor.");
             return;
         }
-        // Upgrade ekranýnýn þu anki durumunu kontrol et
-        bool isUpgradeScreenActive = UIManager.Instance.upgradeScreenPanel != null &&
-                                   UIManager.Instance.upgradeScreenPanel.activeInHierarchy;
+        // Upgrade ekranï¿½nï¿½n ï¿½u anki durumunu kontrol et
+        bool isUpgradeScreenActive =
+            UIManager.Instance.upgradeScreenPanel != null
+            && UIManager.Instance.upgradeScreenPanel.activeInHierarchy;
         if (isUpgradeScreenActive)
         {
             UIManager.Instance.CloseUpgradeScreen();
-            Debug.Log("Upgrade ekraný kapatýldý.");
+            Debug.Log("Upgrade ekranï¿½ kapatï¿½ldï¿½.");
         }
         else
         {
             UIManager.Instance.OpenUpgradeScreen();
-            Debug.Log("Upgrade ekraný açýldý.");
+            Debug.Log("Upgrade ekranï¿½ aï¿½ï¿½ldï¿½.");
         }
     }
+
     /// <summary>
-    /// Bilgi mesajýný gösterir.
+    /// Bilgi mesajï¿½nï¿½ gï¿½sterir.
     /// </summary>
-    /// <param name="message">Gösterilecek mesaj</param>
+    /// <param name="message">Gï¿½sterilecek mesaj</param>
     private void ShowInfoMessage(string message)
     {
         if (infoText != null && !string.IsNullOrEmpty(message))
@@ -153,8 +178,9 @@ public class UpgradeTrigger : MonoBehaviour
             infoText.gameObject.SetActive(true);
         }
     }
+
     /// <summary>
-    /// Bilgi mesajýný gizler.
+    /// Bilgi mesajï¿½nï¿½ gizler.
     /// </summary>
     private void HideInfoMessage()
     {
@@ -163,8 +189,9 @@ public class UpgradeTrigger : MonoBehaviour
             infoText.gameObject.SetActive(false);
         }
     }
+
     /// <summary>
-    /// Public metot: Dýþardan upgrade ekranýný açmak için kullanýlabilir.
+    /// Public metot: Dï¿½ï¿½ardan upgrade ekranï¿½nï¿½ aï¿½mak iï¿½in kullanï¿½labilir.
     /// </summary>
     public void OpenUpgradeScreen()
     {
@@ -173,8 +200,9 @@ public class UpgradeTrigger : MonoBehaviour
             UIManager.Instance.OpenUpgradeScreen();
         }
     }
+
     /// <summary>
-    /// Public metot: Dýþardan upgrade ekranýný kapatmak için kullanýlabilir.
+    /// Public metot: Dï¿½ï¿½ardan upgrade ekranï¿½nï¿½ kapatmak iï¿½in kullanï¿½labilir.
     /// </summary>
     public void CloseUpgradeScreen()
     {
@@ -183,20 +211,13 @@ public class UpgradeTrigger : MonoBehaviour
             UIManager.Instance.CloseUpgradeScreen();
         }
     }
+
     /// <summary>
-    /// Public metot: Oyuncunun þu anda trigger alanýnda olup olmadýðýný döndürür.
+    /// Public metot: Oyuncunun ï¿½u anda trigger alanï¿½nda olup olmadï¿½ï¿½ï¿½nï¿½ dï¿½ndï¿½rï¿½r.
     /// </summary>
-    /// <returns>Oyuncu alandaysa true, deðilse false</returns>
+    /// <returns>Oyuncu alandaysa true, deï¿½ilse false</returns>
     public bool IsPlayerInArea()
     {
         return playerInArea;
     }
 }
-
-
-
-
-
-
-
-
