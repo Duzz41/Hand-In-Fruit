@@ -291,6 +291,9 @@ public class FuelSystem : MonoBehaviour
             {
                 playerController.ResetMomentum();
             }
+
+            // Panel açılır, ışınlama biraz gecikmeli yapılır
+            UIManager.Instance.ShowFuelEmptyThenDo(TeleportToStartArea, 2f); // delay = 2 saniye
         }
     }
 
@@ -385,112 +388,5 @@ public class FuelSystem : MonoBehaviour
                 + $"Player Moving: {(playerController != null ? playerController.IsMoving() : false)} | "
                 + $"{refuelStatus}{outOfFuelStatus}{wallCollisionStatus}"
         );
-    }
-
-    // Public methods for external access
-    public float GetCurrentFuel() => currentFuel;
-
-    public float GetMaxFuel() => maxFuel;
-
-    public float GetFuelPercentage() => currentFuel / maxFuel;
-
-    public bool IsRefueling() => isRefueling;
-
-    public bool IsOutOfFuel() => isOutOfFuel;
-
-    public bool IsInRefuelArea() => isInRefuelArea;
-
-    public bool IsLowFuel() => currentFuel <= lowFuelThreshold;
-
-    // Methods to modify fuel externally
-    public void AddFuelAmount(float amount)
-    {
-        AddFuel(amount);
-    }
-
-    public void ConsumeFuelAmount(float amount)
-    {
-        ConsumeFuel(amount);
-    }
-
-    public void RefillFuel()
-    {
-        currentFuel = maxFuel;
-        OnFuelChanged?.Invoke(currentFuel, maxFuel);
-        OnFuelRefilled?.Invoke();
-    }
-
-    public void SetFuel(float amount)
-    {
-        currentFuel = Mathf.Clamp(amount, 0f, maxFuel);
-        OnFuelChanged?.Invoke(currentFuel, maxFuel);
-    }
-
-    // Teleport methods
-    public void TeleportToStartAreaManually()
-    {
-        TeleportToStartArea();
-    }
-
-    public void SetStartAreaPosition(Vector3 position)
-    {
-        if (startAreaCenter != null)
-        {
-            startAreaCenter.position = position;
-        }
-    }
-
-    // Debug visualization
-    void OnDrawGizmos()
-    {
-        if (startAreaCenter != null && debugRefuelArea)
-        {
-            // Draw refuel area
-            Gizmos.color = isInRefuelArea ? Color.green : Color.yellow;
-            Gizmos.DrawWireSphere(startAreaCenter.position, refuelAreaRadius);
-
-            // Draw area boundary on ground
-            Gizmos.color = new Color(Gizmos.color.r, Gizmos.color.g, Gizmos.color.b, 0.3f);
-            Vector3 groundPos = new Vector3(
-                startAreaCenter.position.x,
-                transform.position.y,
-                startAreaCenter.position.z
-            );
-            Gizmos.DrawSphere(groundPos, refuelAreaRadius);
-
-            // Draw line to start area
-            if (Application.isPlaying)
-            {
-                Gizmos.color = Color.cyan;
-                Gizmos.DrawLine(transform.position, startAreaCenter.position);
-            }
-        }
-
-        // Draw fuel indicator above player
-        if (Application.isPlaying)
-        {
-            Vector3 fuelBarPos = transform.position + Vector3.up * 3f;
-            float fuelPercentage = GetFuelPercentage();
-
-            // Background bar
-            Gizmos.color = Color.red;
-            Gizmos.DrawLine(fuelBarPos - Vector3.right, fuelBarPos + Vector3.right);
-
-            // Fuel bar
-            Gizmos.color = fuelPercentage > 0.2f ? Color.green : Color.red;
-            Vector3 fuelBarEnd = Vector3.Lerp(
-                fuelBarPos - Vector3.right,
-                fuelBarPos + Vector3.right,
-                fuelPercentage
-            );
-            Gizmos.DrawLine(fuelBarPos - Vector3.right, fuelBarEnd);
-
-            // Out of fuel indicator
-            if (isOutOfFuel)
-            {
-                Gizmos.color = Color.red;
-                Gizmos.DrawWireSphere(transform.position + Vector3.up * 2.5f, 0.3f);
-            }
-        }
     }
 }

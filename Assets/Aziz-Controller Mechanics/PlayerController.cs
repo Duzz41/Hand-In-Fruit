@@ -6,40 +6,50 @@ public class PlayerController : MonoBehaviour
     [Header("Movement Settings")]
     [SerializeField]
     private float moveSpeed = 10f;
+
     [SerializeField]
     private float rotationSpeed = 100f;
+
     [SerializeField]
     private float acceleration = 5f;
+
     [SerializeField]
     private float deceleration = 8f;
 
     [Header("Physics Settings")]
     [SerializeField]
     private float maxVelocity = 15f;
+
     [SerializeField]
     private float dragCoefficient = 0.8f;
 
     [Header("Collision Recovery")]
     [SerializeField]
     private bool autoRecoverFromCollision = true;
+
     [SerializeField]
     private float recoveryForceMultiplier = 1.2f;
+
     [SerializeField]
     private float collisionRecoveryTime = 1f;
+
     [SerializeField]
     private float minCollisionForceForRecovery = 3f;
 
     [Header("Input Settings")]
     [SerializeField]
     private bool useBuiltInInput = true;
+
     [SerializeField]
     private bool useVirtualJoystick = true;
 
     [Header("Debug Settings")]
     [SerializeField]
     private bool debugVelocity = true;
+
     [SerializeField]
     private bool debugCollisions = true;
+
     [SerializeField]
     private float debugLogInterval = 0.5f;
 
@@ -69,6 +79,7 @@ public class PlayerController : MonoBehaviour
     [Header("Audio Settings")]
     [SerializeField]
     private AudioClip engineSound;
+
     [SerializeField]
     private AudioClip drillSound;
 
@@ -152,7 +163,9 @@ public class PlayerController : MonoBehaviour
         fuelSystem = GetComponent<FuelSystem>();
         if (fuelSystem == null)
         {
-            Debug.LogWarning("[PlayerController] FuelSystem component not found. Movement will not be restricted by fuel.");
+            Debug.LogWarning(
+                "[PlayerController] FuelSystem component not found. Movement will not be restricted by fuel."
+            );
         }
     }
 
@@ -294,7 +307,11 @@ public class PlayerController : MonoBehaviour
     {
         if (isRecoveringFromCollision)
         {
-            Vector3 currentHorizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            Vector3 currentHorizontalVelocity = new Vector3(
+                rb.linearVelocity.x,
+                0f,
+                rb.linearVelocity.z
+            );
             Vector3 preservedMomentum = preCollisionVelocity * momentumPreservation;
             Vector3 blendedVelocity = Vector3.Lerp(
                 currentHorizontalVelocity,
@@ -310,7 +327,8 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            Vector3 velocityDifference = targetVelocity - new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            Vector3 velocityDifference =
+                targetVelocity - new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             Vector3 forceToApply = velocityDifference * rb.mass * acceleration;
             forceToApply = Vector3.ClampMagnitude(forceToApply, rb.mass * moveSpeed * 2f);
             rb.AddForce(forceToApply, ForceMode.Force);
@@ -319,7 +337,11 @@ public class PlayerController : MonoBehaviour
 
     void ApplyFuelEmptyDeceleration()
     {
-        Vector3 currentHorizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        Vector3 currentHorizontalVelocity = new Vector3(
+            rb.linearVelocity.x,
+            0f,
+            rb.linearVelocity.z
+        );
         Vector3 deceleratedVelocity = Vector3.Lerp(
             currentHorizontalVelocity,
             Vector3.zero,
@@ -394,7 +416,9 @@ public class PlayerController : MonoBehaviour
         {
             if (debugCollisions)
             {
-                Debug.LogWarning($"[PlayerController] Mass changed from {originalMass} to {rb.mass}. Resetting.");
+                Debug.LogWarning(
+                    $"[PlayerController] Mass changed from {originalMass} to {rb.mass}. Resetting."
+                );
             }
             rb.mass = originalMass;
         }
@@ -403,7 +427,9 @@ public class PlayerController : MonoBehaviour
         {
             if (debugCollisions)
             {
-                Debug.LogWarning($"[PlayerController] Linear damping changed from {originalDrag} to {rb.linearDamping}. Resetting.");
+                Debug.LogWarning(
+                    $"[PlayerController] Linear damping changed from {originalDrag} to {rb.linearDamping}. Resetting."
+                );
             }
             rb.linearDamping = originalDrag;
         }
@@ -412,7 +438,9 @@ public class PlayerController : MonoBehaviour
         {
             if (debugCollisions)
             {
-                Debug.LogWarning($"[PlayerController] Angular damping changed from {originalAngularDrag} to {rb.angularDamping}. Resetting.");
+                Debug.LogWarning(
+                    $"[PlayerController] Angular damping changed from {originalAngularDrag} to {rb.angularDamping}. Resetting."
+                );
             }
             rb.angularDamping = originalAngularDrag;
         }
@@ -424,7 +452,7 @@ public class PlayerController : MonoBehaviour
         {
             Debug.Log(
                 $"[PlayerController] Collision with {collision.gameObject.name}. "
-                + $"Impact force: {collision.impulse.magnitude:F2}"
+                    + $"Impact force: {collision.impulse.magnitude:F2}"
             );
         }
 
@@ -497,7 +525,8 @@ public class PlayerController : MonoBehaviour
         string fuelLevel = "";
         if (upgradeManager != null)
         {
-            fuelLevel = $" Fuel: {upgradeManager.currentFuel:F1}/{upgradeManager.maxFuelCapacity:F1}";
+            fuelLevel =
+                $" Fuel: {upgradeManager.currentFuel:F1}/{upgradeManager.maxFuelCapacity:F1}";
         }
         else
         {
@@ -509,9 +538,9 @@ public class PlayerController : MonoBehaviour
 
         Debug.Log(
             $"[PlayerController] Current Velocity: {currentVelocity} | "
-            + $"Horizontal Speed: {horizontalVelocity.magnitude:F2} | "
-            + $"Target Speed: {currentSpeed:F2} | "
-            + $"Moving: {IsMoving()}{recoveryStatus}{fuelStatus}{fuelLevel}"
+                + $"Horizontal Speed: {horizontalVelocity.magnitude:F2} | "
+                + $"Target Speed: {currentSpeed:F2} | "
+                + $"Moving: {IsMoving()}{recoveryStatus}{fuelStatus}{fuelLevel}"
         );
     }
 
@@ -575,4 +604,3 @@ public class PlayerController : MonoBehaviour
         }
     }
 }
-
