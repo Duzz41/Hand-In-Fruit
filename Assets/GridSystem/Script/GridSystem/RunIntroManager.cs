@@ -2,100 +2,163 @@ using System.Collections;
 using DG.Tweening;
 using Unity.Cinemachine;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class RunIntroManager : MonoBehaviour
 {
-    [Header("Referanslar")]
+    [Header("UI")]
+    public GameObject startButtonUI;
+    public GameObject mainMenuUI;
+    public GameObject gameplayUI;
+
+    [Header("Kamera Sistemi")]
+    public GameObject followCamera; // İçinde CinemachineFollow var
+    private CinemachineFollow cinemachineFollow;
+
+    [Header("Sahne Objeleri")]
     public Transform door;
     public Transform mountain;
-    public MapChunkSpawner chunkSpawner;
-    public PlayerController playerController;
-    public CinemachineBrain cinemachineCamera;
-    public GameObject startButton;
-    public GameObject MountainModel;
-
-    [Header("Konumlar")]
-    public Transform doorStartPos;
-    public Transform doorOpenPos;
     public Transform mountainUpPos;
-    public Transform mountainDownPos;
+    public GameObject player;
 
-    [Header("Kamera Ayarı")]
-    public Vector3 cameraIntroPosition;
-    public Vector3 cameraIntroRotation;
-    public float cameraTransitionDuration = 2f;
+    [Header("Kontroller")]
+    public PlayerController playerController;
+    public MapChunkSpawner chunkSpawner;
 
-    public bool hasStarted = false;
+    [Header("Ayarlar")]
+    public float cameraMoveDuration = 2f;
+    public float mountainMoveDuration = 3f;
+    public bool firstIntro = false;
+    private bool introStarted = false;
+
+    [Header("Kamera Ayarları")]
+    public Vector3 playerViewOffset; // Kameranın oyuncuya göre ofseti
+    public Vector3 playerViewEuler; // Kameranın oyuncuya bakış rotasyonu (Inspector'dan ayarlanır)
 
     void Start()
     {
-        // Başlangıç pozisyonlarını ayarla
-        door.position = doorStartPos.position;
-        mountain.position = mountainDownPos.position;
+        gameplayUI.SetActive(false);
+        playerController.enabled = false;
+        cinemachineFollow = followCamera.GetComponent<CinemachineFollow>();
 
-        // Oyuncu hareketini devre dışı bırak
-        playerController.SetMovementEnabled(false);
-
-        // Kamerayı başlangıç açısına ayarla
-        cinemachineCamera.transform.position = cameraIntroPosition;
-        cinemachineCamera.transform.rotation = Quaternion.Euler(cameraIntroRotation);
+        // Start butonu sahne başında aktif kalsın
+        startButtonUI.SetActive(true);
+        mainMenuUI.SetActive(true);
     }
 
-    public void PlayIntro()
+    public void StartButtonClicked()
     {
-        StartCoroutine(StartIntroSequence());
+        if (introStarted)
+            return;
+        startButtonUI.SetActive(false);
+
+        StartCoroutine(IntroSequence());
     }
 
-    private IEnumerator StartIntroSequence()
+    public void StartIntro()
     {
-        if (hasStarted)
-            yield break;
+        if (introStarted)
+            return;
+        if (firstIntro == false)
+            return;
+        introStarted = true;
 
-        hasStarted = true;
-        Debug.Log("▶ Intro Sequence başladı");
+        StartCoroutine(IntroSequence());
+    }
 
-        // 1. Start butonunu kapat
-        if (startButton != null)
+    private IEnumerator IntroSequence()
+    {
+        if (!firstIntro)
         {
-            startButton.SetActive(false);
-            Debug.Log("⛔ Start butonu kapatıldı");
+            // Kapıya geç
+            yield return RotateAndOffsetToTarget(
+                door.position + new Vector3(0, 2, -5),
+                door.position,
+                cameraMoveDuration
+            );
+
+            // Dağa geç
+            yield return RotateAndOffsetToTarget(
+                mountain.position + new Vector3(0, 3, -6),
+                mountain.position,
+                cameraMoveDuration
+            );
         }
 
-        // 2. Kamera hareketi
-        Debug.Log("📷 Kamera hareketi başlıyor");
-        var cameraMove = cinemachineCamera.transform.DOMove(
-            cameraIntroPosition,
-            cameraTransitionDuration
-        );
-        var cameraRotate = cinemachineCamera.transform.DORotate(
-            cameraIntroRotation,
-            cameraTransitionDuration
-        );
+        // Dağ yukarı çıkar
+        bool mountainMoveDone = false;
+        mountain
+            .DOMove(mountainUpPos.position, mountainMoveDuration)
+            .OnComplete(() => mountainMoveDone = true);
+        yield return new WaitUntil(() => mountainMoveDone);
 
-        yield return cameraMove.WaitForCompletion();
-        yield return cameraRotate.WaitForCompletion();
+        if (!firstIntro)
+        {
+            // Oyuncuya geç ama offset ve rotation inspector’dan
+            yield return MoveToPlayerPreset(cameraMoveDuration);
+            firstIntro = true;
+        }
 
-        // 3. Dağ yukarı çıkıyor
-        Debug.Log("⛰️ Dağ yukarı çıkıyor");
-        yield return mountain
-            .DOMove(mountainUpPos.position, 1f)
-            .SetEase(Ease.OutCubic)
-            .WaitForCompletion();
-
-        // 4. Kapı açılıyor
-        Debug.Log("🚪 Kapı açılıyor");
-        yield return door.DOMove(doorOpenPos.position, 1f)
-            .SetEase(Ease.InOutQuad)
-            .WaitForCompletion();
-
-        // 5. Harita spawn ediliyor
-        Debug.Log("🗺️ Harita spawn ediliyor");
+        gameplayUI.SetActive(true);
         chunkSpawner.SpawnChunks();
+        playerController.enabled = true;
+    }
 
-        // 6. Oyuncu kontrolü açılıyor
-        yield return new WaitForSeconds(0.5f); // Küçük bir bekleme
-        Debug.Log("🎮 Oyuncu kontrolü açıldı");
-        playerController.SetMovementEnabled(true);
+    private IEnumerator RotateAndOffsetToTarget(
+        Vector3 offsetTarget,
+        Vector3 lookAtTarget,
+        float duration
+    )
+    {
+        Vector3 startOffset = cinemachineFollow.FollowOffset;
+        Vector3 targetOffset = offsetTarget - player.transform.position;
+
+        float elapsed = 0;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            cinemachineFollow.FollowOffset = Vector3.Lerp(startOffset, targetOffset, t);
+
+            Quaternion targetRotation = Quaternion.LookRotation(
+                lookAtTarget - followCamera.transform.position
+            );
+            followCamera.transform.rotation = Quaternion.Slerp(
+                followCamera.transform.rotation,
+                targetRotation,
+                t
+            );
+
+            yield return null;
+        }
+
+        cinemachineFollow.FollowOffset = targetOffset;
+        followCamera.transform.rotation = Quaternion.LookRotation(
+            lookAtTarget - followCamera.transform.position
+        );
+    }
+
+    private IEnumerator MoveToPlayerPreset(float duration)
+    {
+        Vector3 startOffset = cinemachineFollow.FollowOffset;
+        Vector3 targetOffset = playerViewOffset;
+
+        Quaternion startRotation = followCamera.transform.rotation;
+        Quaternion targetRotation = Quaternion.Euler(playerViewEuler);
+
+        float elapsed = 0;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+
+            cinemachineFollow.FollowOffset = Vector3.Lerp(startOffset, targetOffset, t);
+            followCamera.transform.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
+
+            yield return null;
+        }
+
+        cinemachineFollow.FollowOffset = targetOffset;
+        followCamera.transform.rotation = targetRotation;
+        firstIntro = true;
     }
 }

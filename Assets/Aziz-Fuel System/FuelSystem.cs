@@ -38,33 +38,17 @@ public class FuelSystem : MonoBehaviour
     [SerializeField]
     private bool debugFuel = true;
 
-    [SerializeField]
-    private bool debugRefuelArea = true;
-
-    [SerializeField]
-    private float debugLogInterval = 1f;
-
     // Components
     private PlayerController playerController;
 
     // Fuel state variables
     private bool isInRefuelArea = false;
-    private bool isRefueling = false;
     private bool isOutOfFuel = false;
     private bool isTeleporting = false;
     private float teleportTimer = 0f;
 
-    // Wall collision detection
-    private bool isCollidingWithWall = false;
-    private float wallCollisionTimer = 0f;
-    private const float wallCollisionCooldown = 0.1f; // Prevent rapid fuel drain
-
     [SerializeField]
     private RunIntroManager introManager;
-
-    // Debug variables
-    private float lastDebugTime = 0f;
-    private float lastFuelAmount = 0f;
 
     // Events for UI and other systems
     public System.Action<float, float> OnFuelChanged; // currentFuel, maxFuel
@@ -92,32 +76,16 @@ public class FuelSystem : MonoBehaviour
     void InitializeFuel()
     {
         currentFuel = maxFuel;
-        lastFuelAmount = currentFuel;
-
-        if (debugFuel)
-        {
-            Debug.Log($"[FuelSystem] Initialized with {currentFuel}/{maxFuel} fuel");
-        }
-
-        // Trigger initial fuel update
-        OnFuelChanged?.Invoke(currentFuel, maxFuel);
+        OnFuelChanged?.Invoke(currentFuel, maxFuel); // Trigger initial fuel update
     }
 
     void SetupStartArea()
     {
-        // If no start area is assigned, use current position
         if (startAreaCenter == null)
         {
             GameObject startAreaGO = new GameObject("StartArea");
             startAreaCenter = startAreaGO.transform;
             startAreaCenter.position = transform.position;
-
-            if (debugRefuelArea)
-            {
-                Debug.Log(
-                    $"[FuelSystem] Created start area at position: {startAreaCenter.position}"
-                );
-            }
         }
     }
 
@@ -127,54 +95,17 @@ public class FuelSystem : MonoBehaviour
         HandleRefueling();
         CheckRefuelArea();
         HandleTeleportation();
-        HandleWarnings();
-
-        // Debug logging
-        if (debugFuel && Time.time - lastDebugTime >= debugLogInterval)
-        {
-            LogFuelDebugInfo();
-            lastDebugTime = Time.time;
-        }
     }
 
     void HandleFuelConsumption()
     {
-        if (isOutOfFuel || isTeleporting || isRefueling)
+        if (isOutOfFuel || isTeleporting)
             return;
 
         bool isPlayerMoving = playerController != null && playerController.IsMoving();
-        bool isPlayerTryingToMove =
-            playerController != null && playerController.GetJoystickInput().magnitude > 0.1f;
-
-        // Consume fuel if player is moving OR trying to move (including against walls)
-        if (isPlayerMoving || isPlayerTryingToMove)
+        if (isPlayerMoving)
         {
-            float baseFuelConsumption = fuelConsumptionRate * Time.deltaTime;
-            float wallFuelConsumption = 0f;
-
-            // Extra fuel consumption when colliding with walls while trying to move
-            if (isCollidingWithWall && isPlayerTryingToMove)
-            {
-                wallFuelConsumption = wallCollisionFuelRate * Time.deltaTime;
-
-                if (debugFuel)
-                {
-                    Debug.Log($"[FuelSystem] Wall collision fuel drain: {wallFuelConsumption:F2}");
-                }
-            }
-
-            float totalFuelConsumption = baseFuelConsumption + wallFuelConsumption;
-            ConsumeFuel(totalFuelConsumption);
-        }
-
-        // Update wall collision timer
-        if (wallCollisionTimer > 0f)
-        {
-            wallCollisionTimer -= Time.deltaTime;
-            if (wallCollisionTimer <= 0f)
-            {
-                isCollidingWithWall = false;
-            }
+            ConsumeFuel(fuelConsumptionRate * Time.deltaTime);
         }
     }
 
@@ -182,30 +113,9 @@ public class FuelSystem : MonoBehaviour
     {
         if (isInRefuelArea && !isOutOfFuel && !isTeleporting)
         {
-            if (!isRefueling)
-            {
-                isRefueling = true;
-                if (debugFuel)
-                {
-                    Debug.Log("[FuelSystem] Started refueling in start area");
-                }
-            }
-
-            // Refuel
-            float fuelToAdd = refuelRate * Time.deltaTime;
-            AddFuel(fuelToAdd);
-        }
-        else if (isRefueling)
-        {
-            isRefueling = false;
-            if (debugFuel)
-            {
-                Debug.Log("[FuelSystem] Stopped refueling - left start area");
-            }
+            AddFuel(refuelRate * Time.deltaTime);
         }
     }
-
-    private bool hasLoadedOnceSinceLastExit = false;
 
     void CheckRefuelArea()
     {
@@ -213,29 +123,13 @@ public class FuelSystem : MonoBehaviour
             return;
 
         float distanceToStartArea = Vector3.Distance(transform.position, startAreaCenter.position);
-        bool wasInRefuelArea = isInRefuelArea;
         isInRefuelArea = distanceToStartArea <= refuelAreaRadius;
 
-        // Trigger events when entering/exiting refuel area
-        if (isInRefuelArea != wasInRefuelArea)
+        if (isInRefuelArea)
         {
-            OnRefuelAreaEntered?.Invoke(isInRefuelArea);
-
-            if (debugRefuelArea)
+            if (introManager != null)
             {
-                Debug.Log(
-                    $"[FuelSystem] {(isInRefuelArea ? "Entered" : "Exited")} refuel area. Distance: {distanceToStartArea:F2}"
-                );
-            }
-
-            // 🔁 Harita sadece tekrar girildiğinde yüklensin
-            if (isInRefuelArea)
-            {
-                if (introManager != null)
-                {
-                    if (introManager.hasStarted == true)
-                        introManager.PlayIntro();
-                }
+                introManager.StartIntro(); // Start intro sequence
             }
         }
     }
@@ -253,66 +147,28 @@ public class FuelSystem : MonoBehaviour
         }
     }
 
-    void HandleWarnings()
-    {
-        bool wasLowFuel = lastFuelAmount <= lowFuelThreshold;
-        bool isLowFuel = currentFuel <= lowFuelThreshold;
-
-        if (wasLowFuel != isLowFuel)
-        {
-            OnLowFuelWarning?.Invoke(isLowFuel);
-
-            if (debugFuel)
-            {
-                Debug.Log($"[FuelSystem] Low fuel warning: {isLowFuel}");
-            }
-        }
-
-        lastFuelAmount = currentFuel;
-    }
-
     void ConsumeFuel(float amount)
     {
         currentFuel = Mathf.Max(0f, currentFuel - amount);
-        OnFuelChanged?.Invoke(currentFuel, maxFuel);
+        OnFuelChanged?.Invoke(currentFuel, maxFuel); // Notify fuel change
 
         if (currentFuel <= 0f && !isOutOfFuel)
         {
             isOutOfFuel = true;
             teleportTimer = 0f;
             OnFuelEmpty?.Invoke();
-
-            if (debugFuel)
-            {
-                Debug.Log("[FuelSystem] Fuel depleted! Preparing to teleport to start area.");
-            }
-
-            // Stop player movement
-            if (playerController != null)
-            {
-                playerController.ResetMomentum();
-            }
-
-            // Panel açılır, ışınlama biraz gecikmeli yapılır
-            UIManager.Instance.ShowFuelEmptyThenDo(TeleportToStartArea, 2f); // delay = 2 saniye
         }
     }
 
     void AddFuel(float amount)
     {
-        float previousFuel = currentFuel;
         currentFuel = Mathf.Min(maxFuel, currentFuel + amount);
-        OnFuelChanged?.Invoke(currentFuel, maxFuel);
+        OnFuelChanged?.Invoke(currentFuel, maxFuel); // Notify fuel change
 
         // Check if fuel was fully refilled
-        if (previousFuel < maxFuel && currentFuel >= maxFuel)
+        if (currentFuel >= maxFuel)
         {
             OnFuelRefilled?.Invoke();
-
-            if (debugFuel)
-            {
-                Debug.Log("[FuelSystem] Fuel tank fully refilled!");
-            }
         }
     }
 
@@ -322,38 +178,18 @@ public class FuelSystem : MonoBehaviour
             return;
 
         isTeleporting = true;
-
-        // Reset player physics
-        if (playerController != null)
-        {
-            playerController.ResetMomentum();
-        }
-
-        // Teleport to start area
         transform.position = startAreaCenter.position;
-        transform.rotation = Quaternion.Euler(new Vector3(0f, -90f, 0f)); // start rotation
 
-        // Refill fuel
+        // Reset fuel and state
         currentFuel = maxFuel;
         isOutOfFuel = false;
         isTeleporting = false;
         teleportTimer = 0f;
 
-        OnFuelChanged?.Invoke(currentFuel, maxFuel);
-        OnFuelRefilled?.Invoke();
-
-        // 🔁 Chunk'ları yeniden spawn et
+        // Yeni dağ oluştur
         if (introManager != null)
         {
-            if (introManager.hasStarted == true)
-                introManager.PlayIntro();
-        }
-
-        if (debugFuel)
-        {
-            Debug.Log(
-                $"[FuelSystem] Player teleported to start area and refueled. Position: {transform.position}"
-            );
+            introManager.StartIntro(); // Start intro sequence
         }
     }
 
@@ -366,29 +202,33 @@ public class FuelSystem : MonoBehaviour
 
         if (Mathf.Abs(collisionNormal.y) < wallThreshold) // Not a ground collision
         {
-            isCollidingWithWall = true;
-            wallCollisionTimer = wallCollisionCooldown;
-
-            if (debugFuel)
-            {
-                Debug.Log(
-                    $"[FuelSystem] Wall collision detected with {collision.gameObject.name}. Normal: {collisionNormal}"
-                );
-            }
+            // Handle wall collision logic here
         }
     }
 
-    void LogFuelDebugInfo()
+    // Subscribe to events
+    public void SubscribeToEvents()
     {
-        string refuelStatus = isRefueling ? " [REFUELING]" : "";
-        string outOfFuelStatus = isOutOfFuel ? " [OUT OF FUEL]" : "";
-        string wallCollisionStatus = isCollidingWithWall ? " [WALL COLLISION]" : "";
+        OnFuelEmpty += HandleFuelEmpty;
+        OnFuelRefilled += HandleFuelRefilled;
+    }
 
-        Debug.Log(
-            $"[FuelSystem] Fuel: {currentFuel:F1}/{maxFuel} | "
-                + $"In Refuel Area: {isInRefuelArea} | "
-                + $"Player Moving: {(playerController != null ? playerController.IsMoving() : false)} | "
-                + $"{refuelStatus}{outOfFuelStatus}{wallCollisionStatus}"
-        );
+    // Unsubscribe from events
+    public void UnsubscribeFromEvents()
+    {
+        OnFuelEmpty -= HandleFuelEmpty;
+        OnFuelRefilled -= HandleFuelRefilled;
+    }
+
+    private void HandleFuelEmpty()
+    {
+        // Handle fuel empty logic here
+        Debug.Log("Fuel is empty!");
+    }
+
+    private void HandleFuelRefilled()
+    {
+        // Handle fuel refilled logic here
+        Debug.Log("Fuel has been refilled!");
     }
 }

@@ -62,19 +62,22 @@ public class UIManager : MonoBehaviour
 
     public void ShowFuelEmptyThenRestart(float delay = 2f)
     {
-        StartCoroutine(FuelEmptyRoutine(delay));
+        StartCoroutine(FuelEmptyRoutine(delay, true));
     }
 
-    private IEnumerator FuelEmptyRoutine(float delay)
+    private IEnumerator FuelEmptyRoutine(float delay, bool restart = false)
     {
         fuelEmptyPanel.SetActive(true);
         yield return new WaitForSeconds(delay);
         fuelEmptyPanel.SetActive(false);
 
-        RunIntroManager intro = FindObjectOfType<RunIntroManager>();
-        if (intro != null)
+        if (restart)
         {
-            intro.PlayIntro();
+            RunIntroManager intro = FindObjectOfType<RunIntroManager>();
+            if (intro != null)
+            {
+                intro.StartIntro();
+            }
         }
     }
 
@@ -112,7 +115,7 @@ public class UIManager : MonoBehaviour
         RunIntroManager intro = FindObjectOfType<RunIntroManager>();
         if (intro != null)
         {
-            intro.PlayIntro();
+            intro.StartIntro();
         }
     }
 
