@@ -8,6 +8,9 @@ public class LevelGateTrigger : MonoBehaviour
     public Transform moveTargetPoint;
     public float moveDuration = 1.5f;
 
+    [Header("UI Ayarları")]
+    public GameObject levelCompletePanel; // UI’da "Bölüm Geçildi" paneli
+
     private bool triggered = false;
 
     private void OnTriggerEnter(Collider other)
@@ -36,11 +39,26 @@ public class LevelGateTrigger : MonoBehaviour
             .transform.DOMove(moveTargetPoint.position, moveDuration)
             .WaitForCompletion();
 
+        // UI panelini aç
+        if (levelCompletePanel != null)
+        {
+            levelCompletePanel.SetActive(true);
+        }
+
+        // UI’nın bir süre açık kalmasını sağla
+        yield return new WaitForSeconds(2f);
+
+        // UI panelini kapat
+        if (levelCompletePanel != null)
+        {
+            levelCompletePanel.SetActive(false);
+        }
+
         // Oyuncuyu geri getir
         yield return new WaitForSeconds(0.5f);
         yield return player.transform.DOMove(startPos, moveDuration).WaitForCompletion();
 
-        // Seviye atlat ve yeni chunk'ları spawn et
+        // Yeni seviyeyi spawn et
         MapChunkSpawner spawner = FindObjectOfType<MapChunkSpawner>();
         if (spawner != null)
         {
@@ -52,7 +70,7 @@ public class LevelGateTrigger : MonoBehaviour
         player.SetMovementEnabled(true);
         Debug.Log("[LevelGateTrigger] Geçiş tamamlandı.");
 
-        // Geçiş tamamlandıktan sonra yeniden tetiklenebilir hale getir
+        // Yeniden tetiklenebilir hale getir (istersen bunu kaldırabilirsin tek seferlik için)
         triggered = false;
     }
 }
