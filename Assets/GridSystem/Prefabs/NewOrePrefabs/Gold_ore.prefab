@@ -1222,6 +1222,14 @@ MonoBehaviour:
     - Player
     triggerKey: 0
   onlyAllowDrillingFracture: 1
+  fractureSound: {fileID: 8300000, guid: 643890368c8f1aa41bc2d7ab56335723, type: 3}
+  fractureVolume: 0.8
+  useSoundCallManager: 1
+  soundCategory: SFXSound
+  pitchVariation: 0.2
+  minPitch: 0.8
+  maxPitch: 1.2
+  use3DSound: 1
 --- !u!114 &5972849692831445779
 MonoBehaviour:
   m_ObjectHideFlags: 0

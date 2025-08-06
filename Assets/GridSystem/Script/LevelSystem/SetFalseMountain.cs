@@ -8,6 +8,18 @@ public class SetFalseMountain : MonoBehaviour
     void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
-            mountain.SetActive(false);
+        {
+            if (mountain.activeSelf == true)
+                mountain.SetActive(false);
+        }
+    }
+
+    void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            if (mountain.activeSelf == false)
+                mountain.SetActive(true);
+        }
     }
 }

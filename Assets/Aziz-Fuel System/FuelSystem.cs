@@ -38,8 +38,20 @@ public class FuelSystem : MonoBehaviour
     [SerializeField]
     private bool debugFuel = true;
 
+    [SerializeField]
+    private bool showRefuelAreaGizmo = true; // Refuel alanını göster/gizle
+
+    [SerializeField]
+    private Color refuelAreaColor = Color.green; // Refuel alanının rengi
+
+    [SerializeField]
+    private Color refuelAreaColorWhenInside = Color.yellow; // İçindeyken rengi
+
     // Components
     private PlayerController playerController;
+
+    [SerializeField]
+    GameObject mountainModel;
 
     // Fuel state variables
     private bool isInRefuelArea = false;
@@ -100,9 +112,16 @@ public class FuelSystem : MonoBehaviour
     void HandleFuelConsumption()
     {
         if (isOutOfFuel || isTeleporting)
+        {
+            Debug.Log(
+                $"Fuel consumption blocked - OutOfFuel: {isOutOfFuel}, Teleporting: {isTeleporting}"
+            );
             return;
+        }
 
         bool isPlayerMoving = playerController != null && playerController.IsMoving();
+        Debug.Log($"Player moving: {isPlayerMoving}, Current fuel: {currentFuel}");
+
         if (isPlayerMoving)
         {
             ConsumeFuel(fuelConsumptionRate * Time.deltaTime);
@@ -124,14 +143,6 @@ public class FuelSystem : MonoBehaviour
 
         float distanceToStartArea = Vector3.Distance(transform.position, startAreaCenter.position);
         isInRefuelArea = distanceToStartArea <= refuelAreaRadius;
-
-        if (isInRefuelArea)
-        {
-            if (introManager != null)
-            {
-                introManager.StartIntro(); // Start intro sequence
-            }
-        }
     }
 
     void HandleTeleportation()
@@ -150,14 +161,21 @@ public class FuelSystem : MonoBehaviour
     void ConsumeFuel(float amount)
     {
         currentFuel = Mathf.Max(0f, currentFuel - amount);
-        OnFuelChanged?.Invoke(currentFuel, maxFuel); // Notify fuel change
+        OnFuelChanged?.Invoke(currentFuel, maxFuel);
 
         if (currentFuel <= 0f && !isOutOfFuel)
         {
             isOutOfFuel = true;
             teleportTimer = 0f;
             OnFuelEmpty?.Invoke();
+            // OnFuelRefilled?.Invoke(); // Bu satırı kaldırın!
         }
+    }
+
+    public void SetMaxFuel(float newMax)
+    {
+        maxFuel = newMax;
+        currentFuel = Mathf.Min(currentFuel, newMax); // Aşımı önler
     }
 
     void AddFuel(float amount)
@@ -189,7 +207,8 @@ public class FuelSystem : MonoBehaviour
         // Yeni dağ oluştur
         if (introManager != null)
         {
-            introManager.StartIntro(); // Start intro sequence
+            if (introManager.firstIntro != false)
+                introManager.SpawnChunks(); // Start intro sequence
         }
     }
 
@@ -230,5 +249,41 @@ public class FuelSystem : MonoBehaviour
     {
         // Handle fuel refilled logic here
         Debug.Log("Fuel has been refilled!");
+    }
+
+    // Refuel alanını Scene view'da görselleştir
+    void OnDrawGizmosSelected()
+    {
+        if (!showRefuelAreaGizmo || startAreaCenter == null)
+            return;
+
+        // Rengi ayarla - oyuncu içindeyse farklı renk
+        Color gizmoColor = isInRefuelArea ? refuelAreaColorWhenInside : refuelAreaColor;
+        gizmoColor.a = 0.3f; // Şeffaflık
+
+        Gizmos.color = gizmoColor;
+
+        // Refuel alanını çember olarak çiz
+        Gizmos.DrawSphere(startAreaCenter.position, refuelAreaRadius);
+
+        // Kenar çizgisi için daha koyu renk
+        gizmoColor.a = 0.8f;
+        Gizmos.color = gizmoColor;
+        Gizmos.DrawWireSphere(startAreaCenter.position, refuelAreaRadius);
+
+        // Merkezi işaretle
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireCube(startAreaCenter.position, Vector3.one * 0.5f);
+    }
+
+    // Her zaman görünmesi için (opsiyonel)
+    void OnDrawGizmos()
+    {
+        if (!showRefuelAreaGizmo || startAreaCenter == null)
+            return;
+
+        // Sadece kenar çizgisini çiz (seçili değilken)
+        Gizmos.color = new Color(refuelAreaColor.r, refuelAreaColor.g, refuelAreaColor.b, 0.2f);
+        Gizmos.DrawWireSphere(startAreaCenter.position, refuelAreaRadius);
     }
 }

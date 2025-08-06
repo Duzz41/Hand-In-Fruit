@@ -5,11 +5,19 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class LevelGateTrigger : MonoBehaviour
 {
-    public Transform moveTargetPoint;
+    [Header("Hareket Ayarları")]
     public float moveDuration = 1.5f;
 
+    [Header("Pozisyon Referansları")]
+    public Transform playerStartPosition; // Yeni bölümün başlangıç pozisyonu
+
     [Header("UI Ayarları")]
-    public GameObject levelCompletePanel; // UI’da "Bölüm Geçildi" paneli
+    public GameObject levelCompletePanel; // UI'da "Bölüm Geçildi" paneli
+    public TMPro.TextMeshProUGUI levelText; // Level sayısını gösteren UI metni
+
+    [Header("Sistem Referansları")]
+    public MapChunkSpawner mapChunkSpawner;
+    public RunIntroManager runIntroManager;
 
     private bool triggered = false;
 
@@ -32,45 +40,72 @@ public class LevelGateTrigger : MonoBehaviour
         Debug.Log("[LevelGateTrigger] Oyuncu geçiş alanına girdi.");
         player.SetMovementEnabled(false);
 
-        Vector3 startPos = player.transform.position;
+        // 1. Oyuncuyu alanın x,z merkezine götür (y pozisyonu sabit kalsın)
+        Vector3 centerPosition = new Vector3(
+            transform.position.x,
+            player.transform.position.y,
+            transform.position.z
+        );
 
-        // Oyuncuyu ileri hareket ettir
-        yield return player
-            .transform.DOMove(moveTargetPoint.position, moveDuration)
-            .WaitForCompletion();
+        yield return player.transform.DOMove(centerPosition, moveDuration).WaitForCompletion();
 
-        // UI panelini aç
+        // 2. UI panelini aç
         if (levelCompletePanel != null)
         {
             levelCompletePanel.SetActive(true);
         }
 
-        // UI’nın bir süre açık kalmasını sağla
+        // 3. UI'nın bir süre açık kalmasını sağla
         yield return new WaitForSeconds(2f);
 
-        // UI panelini kapat
+        // 4. UI panelini kapat
         if (levelCompletePanel != null)
         {
             levelCompletePanel.SetActive(false);
         }
 
-        // Oyuncuyu geri getir
-        yield return new WaitForSeconds(0.5f);
-        yield return player.transform.DOMove(startPos, moveDuration).WaitForCompletion();
-
-        // Yeni seviyeyi spawn et
-        MapChunkSpawner spawner = FindObjectOfType<MapChunkSpawner>();
-        if (spawner != null)
+        // 5. Oyuncuyu Player Start Pozisyonuna ışınla
+        if (playerStartPosition != null)
         {
-            spawner.currentLevel += 1;
-            spawner.SpawnChunks();
+            player.transform.position = playerStartPosition.position;
+            Debug.Log("[LevelGateTrigger] Oyuncu start pozisyonuna ışınlandı.");
         }
 
-        // Kontrolü aç
+        // 6. Level'i arttır ve yeni bölümü spawn et
+        if (mapChunkSpawner != null)
+        {
+            mapChunkSpawner.currentLevel += 1; // Önce level'i arttır
+        }
+
+        if (runIntroManager != null)
+        {
+            runIntroManager.SpawnChunks(); // Bu metod dağ sekansını da içeriyor
+        }
+        else if (mapChunkSpawner != null)
+        {
+            // Eğer RunIntroManager yoksa direkt spawner kullan
+            mapChunkSpawner.SpawnChunks();
+        }
+
+        // 6.5. Level UI'sını güncelle
+        UpdateLevelUI();
+
+        // 7. Dağ sekansının tamamlanması için bekleme
+        yield return new WaitForSeconds(3f);
+
+        // 8. Kontrolü tekrar aç
         player.SetMovementEnabled(true);
         Debug.Log("[LevelGateTrigger] Geçiş tamamlandı.");
 
-        // Yeniden tetiklenebilir hale getir (istersen bunu kaldırabilirsin tek seferlik için)
+        // Yeniden tetiklenebilir hale getir
         triggered = false;
+    }
+
+    private void UpdateLevelUI()
+    {
+        if (levelText != null && mapChunkSpawner != null)
+        {
+            levelText.text = "Level " + mapChunkSpawner.currentLevel;
+        }
     }
 }

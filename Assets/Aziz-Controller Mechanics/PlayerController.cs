@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 
-//COMBINED VERSION - Includes all features from Version 1 and Version 2
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
@@ -29,7 +28,7 @@ public class PlayerController : MonoBehaviour
     private bool lockYPosition = true;
 
     [SerializeField]
-    private float fixedYPosition = 0f; // Set this to your desired Y position
+    private float fixedYPosition = 0f;
 
     [SerializeField]
     private bool autoSetYPositionOnStart = true;
@@ -74,11 +73,25 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private float debugLogInterval = 0.5f;
 
+    [Header("Sound Settings")]
+    [Tooltip("SoundCallManager'da tanımlı ses isimleri")]
+    [SerializeField]
+    private string engineStartSoundName = "EngineStart";
+
+    [SerializeField]
+    private string engineNoiseSoundName = "EngineNoise";
+
+    [SerializeField]
+    private string drillWorkingSoundName = "DrillWorking";
+
+    [SerializeField]
+    private string drillBreakingSoundName = "DrillBreaking";
+
     // Components
     private Rigidbody rb;
     private SimpleVirtualJoystick virtualJoystick;
     private FuelSystem fuelSystem;
-    private UpgradeManager upgradeManager; // From Version 1
+    private UpgradeManager upgradeManager;
 
     // Input variables
     private Vector2 joystickInput;
@@ -102,15 +115,9 @@ public class PlayerController : MonoBehaviour
     private float drillingTimer;
     private int continuousCollisionCount;
 
-    [Header("Audio Settings")]
-    [SerializeField]
-    private AudioClip engineSound;
-
-    [SerializeField]
-    private AudioClip drillSound;
-
-    private AudioSource engineSource;
-    private AudioSource sfxSource;
+    // Engine sound state variables
+    private bool isEngineRunning = false;
+    private bool wasMovingLastFrame = false;
 
     // Debug variables
     private float lastDebugTime;
@@ -123,49 +130,40 @@ public class PlayerController : MonoBehaviour
         InitializeComponents();
         SetupPhysics();
         BackupOriginalPhysicsValues();
-        SetupYPositionLock(); // From Version 2
-        SetupAudioSource();
+        SetupYPositionLock();
 
         if (useVirtualJoystick)
         {
             virtualJoystick = FindFirstObjectByType<SimpleVirtualJoystick>();
         }
 
-        // Initialize fuel system integration
         InitializeFuelSystem();
 
-        // UpgradeManager instance (From Version 1)
-        upgradeManager = UpgradeManager.Instance;
+        // upgradeManager = UpgradeManager.Instance;
         if (upgradeManager == null)
         {
             Debug.LogError("UpgradeManager instance not found!");
         }
     }
 
-    // New: Handle drilling state detection and management
     void HandleDrillingState()
     {
-        // Reduce drilling timer
         if (drillingTimer > 0f)
         {
             drillingTimer -= Time.deltaTime;
         }
 
-        // Update drilling state based on timer
         bool wasDrilling = isDrilling;
         isDrilling = drillingTimer > 0f;
 
-        // Log drilling state changes
         if (wasDrilling != isDrilling && debugCollisions)
         {
             Debug.Log($"[PlayerController] Drilling state changed: {isDrilling}");
         }
     }
 
-    // New: Apply special physics while drilling
     void ApplyDrillingPhysics()
     {
-        // Increase drag while drilling to prevent sliding
         float currentDrag = rb.linearDamping;
         float targetDrag = originalDrag * drillingDragMultiplier;
 
@@ -174,7 +172,6 @@ public class PlayerController : MonoBehaviour
             rb.linearDamping = Mathf.Lerp(currentDrag, targetDrag, Time.fixedDeltaTime * 5f);
         }
 
-        // Apply additional deceleration force
         Vector3 currentVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         if (currentVelocity.magnitude > 0.1f)
         {
@@ -190,7 +187,9 @@ public class PlayerController : MonoBehaviour
 
     void OnDestroy()
     {
-        // Cleanup: Unsubscribe from events
+        // Motor sesini durdur
+        StopEngine();
+
         if (fuelSystem != null)
         {
             fuelSystem.OnFuelEmpty -= OnFuelEmpty;
@@ -198,7 +197,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // From Version 2: Set up Y position locking
     void SetupYPositionLock()
     {
         if (lockYPosition)
@@ -208,7 +206,6 @@ public class PlayerController : MonoBehaviour
                 fixedYPosition = transform.position.y;
             }
 
-            // Ensure the transform is at the correct Y position
             Vector3 pos = transform.position;
             pos.y = fixedYPosition;
             transform.position = pos;
@@ -217,38 +214,6 @@ public class PlayerController : MonoBehaviour
             {
                 Debug.Log($"[PlayerController] Y position locked to: {fixedYPosition}");
             }
-        }
-    }
-
-    void SetupAudioSource()
-    {
-        AudioSource[] sources = GetComponents<AudioSource>();
-        if (sources.Length < 2)
-        {
-            // Add new AudioSource if needed (From Version 1 approach)
-            engineSource = gameObject.AddComponent<AudioSource>();
-            sfxSource = gameObject.AddComponent<AudioSource>();
-        }
-        else
-        {
-            engineSource = sources[0];
-            sfxSource = sources[1];
-        }
-
-        engineSource.clip = engineSound;
-        engineSource.loop = true;
-        engineSource.playOnAwake = false;
-        engineSource.spatialBlend = 0f;
-
-        sfxSource.loop = false;
-        sfxSource.playOnAwake = false;
-        sfxSource.spatialBlend = 0f;
-
-        // Register with SoundManager if available (From Version 2)
-        if (SoundManager.instance != null)
-        {
-            SoundManager.instance.RegisterAudioSource(engineSource);
-            SoundManager.instance.RegisterAudioSource(sfxSource);
         }
     }
 
@@ -261,7 +226,6 @@ public class PlayerController : MonoBehaviour
             Debug.LogWarning("Rigidbody was missing and has been added automatically.");
         }
 
-        // Get fuel system component
         fuelSystem = GetComponent<FuelSystem>();
         if (fuelSystem == null)
         {
@@ -275,7 +239,6 @@ public class PlayerController : MonoBehaviour
     {
         if (fuelSystem != null)
         {
-            // Subscribe to fuel system events
             fuelSystem.OnFuelEmpty += OnFuelEmpty;
             fuelSystem.OnFuelRefilled += OnFuelRefilled;
 
@@ -309,14 +272,61 @@ public class PlayerController : MonoBehaviour
         HandleInput();
         CalculateMovement();
         HandleCollisionRecovery();
-        HandleDrillingState(); // New: Handle drilling state
+        HandleDrillingState();
         MonitorPhysicsValues();
-        HandleEngineSound();
+        HandleEngineSound(); // Basit motor sesi sistemi
 
         if (debugVelocity && Time.time - lastDebugTime >= debugLogInterval)
         {
             DebugVelocityInfo();
             lastDebugTime = Time.time;
+        }
+    }
+
+    // BASİT MOTOR SESİ SİSTEMİ
+    void HandleEngineSound()
+    {
+        bool isCurrentlyMoving = IsMoving() && CanMove();
+
+        // Motor çalışma durumu kontrolü
+        if (isCurrentlyMoving && !isEngineRunning)
+        {
+            StartEngine();
+        }
+        else if (!isCurrentlyMoving && isEngineRunning)
+        {
+            StopEngine();
+        }
+
+        wasMovingLastFrame = isCurrentlyMoving;
+    }
+
+    void StartEngine()
+    {
+        if (!isEngineRunning && SoundCallManager.instance != null)
+        {
+            isEngineRunning = true;
+
+            // Motor çalıştırma sesi çal (tek seferlik)
+            SoundCallManager.instance.PlayOneShot(engineStartSoundName);
+
+            // Motor sürekli ses çal (loop)
+            SoundCallManager.instance.PlaySound(engineNoiseSoundName);
+
+            Debug.Log("[PlayerController] Motor çalıştırıldı!");
+        }
+    }
+
+    void StopEngine()
+    {
+        if (isEngineRunning && SoundCallManager.instance != null)
+        {
+            isEngineRunning = false;
+
+            // Motor sesini durdur
+            SoundCallManager.instance.StopSound(engineNoiseSoundName);
+
+            Debug.Log("[PlayerController] Motor durduruldu!");
         }
     }
 
@@ -332,38 +342,32 @@ public class PlayerController : MonoBehaviour
             ApplyFuelEmptyDeceleration();
         }
 
-        // Apply drilling physics if drilling
         if (isDrilling && stopSlidingWhileDrilling)
         {
             ApplyDrillingPhysics();
         }
 
         LimitVelocity();
-
-        // From Version 2: Enforce Y position lock every physics update
         EnforceYPositionLock();
     }
 
-    // From Version 2: Enforce Y position locking
     void EnforceYPositionLock()
     {
         if (!lockYPosition)
             return;
 
-        // Force Y position in transform
         Vector3 currentPos = transform.position;
         if (Mathf.Abs(currentPos.y - fixedYPosition) > 0.001f)
         {
             currentPos.y = fixedYPosition;
             transform.position = currentPos;
 
-            if (debugVelocity && Time.fixedTime % 1f < Time.fixedDeltaTime) // Log once per second
+            if (debugVelocity && Time.fixedTime % 1f < Time.fixedDeltaTime)
             {
                 Debug.Log($"[PlayerController] Corrected Y position to {fixedYPosition}");
             }
         }
 
-        // Force Y velocity to zero
         Vector3 currentVelocity = rb.linearVelocity;
         if (Mathf.Abs(currentVelocity.y) > 0.001f)
         {
@@ -371,7 +375,6 @@ public class PlayerController : MonoBehaviour
             rb.linearVelocity = currentVelocity;
         }
 
-        // Ensure rigidbody constraints are maintained
         if ((rb.constraints & RigidbodyConstraints.FreezePositionY) == 0)
         {
             rb.constraints |= RigidbodyConstraints.FreezePositionY;
@@ -379,18 +382,6 @@ public class PlayerController : MonoBehaviour
             {
                 Debug.Log("[PlayerController] Restored Y position constraint on Rigidbody");
             }
-        }
-    }
-
-    void HandleEngineSound()
-    {
-        if (IsMoving() && !engineSource.isPlaying && CanMove())
-        {
-            //SoundCallManager.instance.PlaySound("EngineSound");
-        }
-        else if ((!IsMoving() || !CanMove()) && engineSource.isPlaying)
-        {
-            // SoundCallManager.instance.StopSound("EngineSound");
         }
     }
 
@@ -455,7 +446,6 @@ public class PlayerController : MonoBehaviour
 
     void ApplyMovement()
     {
-        // If drilling and stop sliding is enabled, reduce movement significantly
         if (isDrilling && stopSlidingWhileDrilling)
         {
             Vector3 currentHorizontalVelocity = new Vector3(
@@ -463,14 +453,11 @@ public class PlayerController : MonoBehaviour
                 0f,
                 rb.linearVelocity.z
             );
-
-            // Apply strong deceleration while drilling
             Vector3 deceleratedVelocity = Vector3.Lerp(
                 currentHorizontalVelocity,
                 Vector3.zero,
                 Time.fixedDeltaTime * drillingDeceleration
             );
-
             rb.linearVelocity = new Vector3(
                 deceleratedVelocity.x,
                 lockYPosition ? 0f : rb.linearVelocity.y,
@@ -479,7 +466,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        if (isRecoveringFromCollision && !isDrilling) // Don't recover if drilling
+        if (isRecoveringFromCollision && !isDrilling)
         {
             Vector3 currentHorizontalVelocity = new Vector3(
                 rb.linearVelocity.x,
@@ -492,10 +479,9 @@ public class PlayerController : MonoBehaviour
                 targetVelocity + preservedMomentum * 0.3f,
                 Time.fixedDeltaTime * 2f
             );
-
             rb.linearVelocity = new Vector3(
                 blendedVelocity.x,
-                lockYPosition ? 0f : rb.linearVelocity.y, // Respect Y lock setting
+                lockYPosition ? 0f : rb.linearVelocity.y,
                 blendedVelocity.z
             );
         }
@@ -506,7 +492,6 @@ public class PlayerController : MonoBehaviour
             Vector3 forceToApply = velocityDifference * rb.mass * acceleration;
             forceToApply = Vector3.ClampMagnitude(forceToApply, rb.mass * moveSpeed * 2f);
 
-            // Ensure no Y component in applied force when Y is locked
             if (lockYPosition)
             {
                 forceToApply.y = 0f;
@@ -530,7 +515,7 @@ public class PlayerController : MonoBehaviour
         );
         rb.linearVelocity = new Vector3(
             deceleratedVelocity.x,
-            lockYPosition ? 0f : rb.linearVelocity.y, // Respect Y lock setting
+            lockYPosition ? 0f : rb.linearVelocity.y,
             deceleratedVelocity.z
         );
         currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, deceleration * Time.deltaTime * 2f);
@@ -563,10 +548,9 @@ public class PlayerController : MonoBehaviour
                 limitedVelocity,
                 Time.fixedDeltaTime * 5f
             );
-
             rb.linearVelocity = new Vector3(
                 smoothLimited.x,
-                lockYPosition ? 0f : rb.linearVelocity.y, // Respect Y lock setting
+                lockYPosition ? 0f : rb.linearVelocity.y,
                 smoothLimited.z
             );
 
@@ -608,7 +592,6 @@ public class PlayerController : MonoBehaviour
             rb.mass = originalMass;
         }
 
-        // Only reset drag if not drilling (drilling intentionally increases drag)
         if (!isDrilling && Mathf.Abs(rb.linearDamping - originalDrag) > 0.1f)
         {
             if (debugCollisions)
@@ -621,7 +604,6 @@ public class PlayerController : MonoBehaviour
         }
         else if (!isDrilling && rb.linearDamping != originalDrag)
         {
-            // Gradually return drag to normal when not drilling
             rb.linearDamping = Mathf.Lerp(rb.linearDamping, originalDrag, Time.deltaTime * 3f);
         }
 
@@ -636,7 +618,6 @@ public class PlayerController : MonoBehaviour
             rb.angularDamping = originalAngularDrag;
         }
 
-        // From Version 2: Monitor and restore Y position constraint
         if (lockYPosition && (rb.constraints & RigidbodyConstraints.FreezePositionY) == 0)
         {
             rb.constraints |= RigidbodyConstraints.FreezePositionY;
@@ -654,8 +635,7 @@ public class PlayerController : MonoBehaviour
         if (debugCollisions)
         {
             Debug.Log(
-                $"[PlayerController] Collision with {collision.gameObject.name}. "
-                    + $"Impact force: {collision.impulse.magnitude:F2}"
+                $"[PlayerController] Collision with {collision.gameObject.name}. Impact force: {collision.impulse.magnitude:F2}"
             );
         }
 
@@ -664,16 +644,18 @@ public class PlayerController : MonoBehaviour
             fuelSystem.OnWallCollision(collision);
         }
 
-        // Detect drilling - when collision occurs with sufficient force
         if (collision.relativeVelocity.magnitude > 2f)
         {
-            SoundCallManager.instance.PlayOneShot("SFXSound", drillSound);
+            // Delme sesi çal
+            if (SoundCallManager.instance != null)
+            {
+                SoundCallManager.instance.PlayOneShot(drillWorkingSoundName);
+            }
 
-            // Start drilling state
             if (stopSlidingWhileDrilling)
             {
                 isDrilling = true;
-                drillingTimer = 0.5f; // Drill for 0.5 seconds after collision
+                drillingTimer = 0.5f;
                 continuousCollisionCount++;
 
                 if (debugCollisions)
@@ -685,7 +667,6 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        // From Version 2: Enforce Y position after collision
         if (lockYPosition)
         {
             Vector3 pos = transform.position;
@@ -693,7 +674,6 @@ public class PlayerController : MonoBehaviour
             transform.position = pos;
         }
 
-        // Only use collision recovery if not drilling
         if (
             autoRecoverFromCollision
             && collision.relativeVelocity.magnitude > minCollisionForceForRecovery
@@ -720,7 +700,6 @@ public class PlayerController : MonoBehaviour
             fuelSystem.OnWallCollision(collision);
         }
 
-        // From Version 2: Continuously enforce Y position during collision
         if (lockYPosition)
         {
             Vector3 pos = transform.position;
@@ -728,19 +707,17 @@ public class PlayerController : MonoBehaviour
             transform.position = pos;
         }
 
-        // Extend drilling time while colliding
         if (stopSlidingWhileDrilling)
         {
-            drillingTimer = Mathf.Max(drillingTimer, 0.2f); // Keep drilling for at least 0.2s more
+            drillingTimer = Mathf.Max(drillingTimer, 0.2f);
         }
 
-        // Reduced push force to prevent sliding while drilling
         if (autoRecoverFromCollision && moveDirection.magnitude > 0.1f && canMove && !isDrilling)
         {
             Vector3 pushForce = moveDirection.normalized * rb.mass * moveSpeed * 0.3f;
             if (lockYPosition)
             {
-                pushForce.y = 0f; // Ensure no Y component in push force when locked
+                pushForce.y = 0f;
             }
             rb.AddForce(pushForce, ForceMode.Force);
         }
@@ -749,6 +726,7 @@ public class PlayerController : MonoBehaviour
     void OnFuelEmpty()
     {
         canMove = false;
+        StopEngine(); // Yakıt bittiğinde motoru durdur
         if (debugVelocity)
         {
             Debug.Log("[PlayerController] Movement disabled - out of fuel!");
@@ -769,17 +747,13 @@ public class PlayerController : MonoBehaviour
         Vector3 currentVelocity = rb.linearVelocity;
         Vector3 horizontalVelocity = new Vector3(currentVelocity.x, 0f, currentVelocity.z);
 
-        // Combined fuel level info from both versions
         string fuelLevel = "";
         if (upgradeManager != null)
         {
-            // From Version 1: UpgradeManager approach
-            fuelLevel =
-                $" Fuel: {upgradeManager.currentFuel:F1}/{upgradeManager.maxFuelCapacity:F1}";
+            //$" fuelLevel =Fuel: {upgradeManager.currentFuel:F1}/{upgradeManager.maxFuelCapacity:F1}";
         }
         else if (fuelSystem != null)
         {
-            // From Version 2: FuelSystem approach
             //fuelLevel = $" Fuel: {fuelSystem.GetCurrentFuel():F1}/{fuelSystem.GetMaxFuel()}";
         }
         else
@@ -789,37 +763,37 @@ public class PlayerController : MonoBehaviour
 
         string recoveryStatus = isRecoveringFromCollision ? " [RECOVERING]" : "";
         string fuelStatus = !canMove ? " [NO FUEL]" : "";
-        string yPositionStatus = lockYPosition ? $" Y-Lock: {fixedYPosition:F2}" : ""; // From Version 2
-        string drillingStatus = isDrilling ? " [DRILLING]" : ""; // New drilling status
+        string yPositionStatus = lockYPosition ? $" Y-Lock: {fixedYPosition:F2}" : "";
+        string drillingStatus = isDrilling ? " [DRILLING]" : "";
+        string engineStatus = isEngineRunning ? " [ENGINE ON]" : " [ENGINE OFF]";
 
         Debug.Log(
             $"[PlayerController] Current Velocity: {currentVelocity} | "
                 + $"Horizontal Speed: {horizontalVelocity.magnitude:F2} | "
                 + $"Target Speed: {currentSpeed:F2} | "
-                + $"Moving: {IsMoving()}{recoveryStatus}{fuelStatus}{fuelLevel}{yPositionStatus}{drillingStatus}"
+                + $"Moving: {IsMoving()}{recoveryStatus}{fuelStatus}{fuelLevel}{yPositionStatus}{drillingStatus}{engineStatus}"
         );
     }
 
-    // Public methods - Combined from both versions
+    // Public methods
     public void SetJoystickInput(Vector2 input)
     {
         joystickInput = input;
     }
 
-    public void SetJoystickInput(float x, float y) // From Version 2
+    public void SetJoystickInput(float x, float y)
     {
         joystickInput = new Vector2(x, y);
     }
 
     public Vector2 GetJoystickInput() => joystickInput;
 
-    public float GetCurrentSpeed() => currentSpeed; // From Version 2
+    public float GetCurrentSpeed() => currentSpeed;
 
     public bool IsMoving() => currentSpeed > 0.1f;
 
     public bool CanMove() => canMove;
 
-    // From Version 2: Y position control methods
     public void SetYPositionLock(bool lockY)
     {
         lockYPosition = lockY;
@@ -851,7 +825,6 @@ public class PlayerController : MonoBehaviour
         rb.linearDamping = originalDrag;
         rb.angularDamping = originalAngularDrag;
 
-        // Restore Y position constraint if needed
         if (lockYPosition)
         {
             rb.constraints =
@@ -865,18 +838,17 @@ public class PlayerController : MonoBehaviour
 
     public bool IsRecoveringFromCollision() => isRecoveringFromCollision;
 
-    public bool IsDrilling() => isDrilling; // New: Check if currently drilling
+    public bool IsDrilling() => isDrilling;
 
     public void ResetMomentum()
     {
         rb.linearVelocity = new Vector3(0f, lockYPosition ? 0f : rb.linearVelocity.y, 0f);
         currentSpeed = 0f;
         isRecoveringFromCollision = false;
-        isDrilling = false; // Also stop drilling
+        isDrilling = false;
         drillingTimer = 0f;
         continuousCollisionCount = 0;
 
-        // Enforce Y position after momentum reset
         if (lockYPosition)
         {
             Vector3 pos = transform.position;
@@ -888,9 +860,15 @@ public class PlayerController : MonoBehaviour
     public void SetMovementEnabled(bool enabled)
     {
         canMove = enabled;
+        if (!enabled)
+        {
+            StopEngine(); // Hareket devre dışı bırakılırsa motoru durdur
+        }
     }
 
-    // Debug visualization - Combined from both versions
+    public bool IsEngineRunning() => isEngineRunning;
+
+    // Debug visualization
     void OnDrawGizmos()
     {
         if (Application.isPlaying && rb != null)
@@ -921,11 +899,18 @@ public class PlayerController : MonoBehaviour
             // Drilling indicator
             if (isDrilling)
             {
-                //Gizmos.color = Color.orange;
+                Gizmos.color = Color.yellow;
                 Gizmos.DrawWireSphere(transform.position + Vector3.up * 1.5f, 0.3f);
             }
 
-            // From Version 2: Y position lock indicator
+            // Engine running indicator
+            if (isEngineRunning)
+            {
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawWireSphere(transform.position + Vector3.up * 3f, 0.4f);
+            }
+
+            // Y position lock indicator
             if (lockYPosition)
             {
                 Gizmos.color = Color.yellow;

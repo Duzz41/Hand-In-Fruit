@@ -87,8 +87,8 @@ public class SellAreaHandler : MonoBehaviour
             int totalMines = stoneCount + ironCount + goldCount;
             if (totalMines <= 0)
             {
-                Debug.Log("Satılacak maden yok!");
-                ShowSellFeedback("Satılacak maden yok!");
+                // Debug.Log("Satılacak maden yok!");
+                //ShowSellFeedback("Satılacak maden yok!");
                 return;
             }
             // Satış işlemini gerçekleştir
@@ -97,13 +97,13 @@ public class SellAreaHandler : MonoBehaviour
             InventoryManager.Instance.ClearInventory();
             Debug.Log($"Satış tamamlandı! Kazanılan para: {earnedMoney}");
             // UI feedback göster
-            ShowSellFeedback($"Satış Tamamlandı!\n+{earnedMoney} Para Kazandınız!");
+            //ShowSellFeedback($"Satış Tamamlandı!\n+{earnedMoney} Para Kazandınız!");
             // UIManager varsa sell popup'ını göster
             if (UIManager.Instance != null)
             {
-                UIManager.Instance.OpenSellPopup();
+                //UIManager.Instance.OpenSellPopup();
                 // 2 saniye sonra popup'ı otomatik kapat
-                Invoke(nameof(CloseSellPopupDelayed), 2f);
+                //Invoke(nameof(CloseSellPopupDelayed), 2f);
             }
         }
         catch (System.Exception e)

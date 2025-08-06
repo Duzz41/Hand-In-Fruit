@@ -15,3 +15,4 @@ MonoBehaviour:
   level: 1
   chunkPrefabs:
   - {fileID: 8033707912446208102, guid: 64a9dc617edbc314e948ac0d28f8a283, type: 3}
+  - {fileID: 5977124906947750234, guid: 63b2a1b5dde79324781598d50498b12f, type: 3}

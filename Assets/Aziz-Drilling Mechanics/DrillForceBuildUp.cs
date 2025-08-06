@@ -1,22 +1,36 @@
-using UnityEngine;
 using System.Collections;
+using UnityEngine;
 
 public class DrillForceBuildup : MonoBehaviour
 {
     [Header("Force Buildup Settings")]
-    [SerializeField] private float forceIncreaseRate = 100f; // Force increase per second
-    [SerializeField] private float forceApplicationMagnitude = 500f; // Magnitude of force to apply
-    [SerializeField] private float frontAngleThreshold = 60f; // Angle threshold to consider "front" collision
-    [SerializeField] private float minMovementThreshold = 0.1f; // Minimum movement to consider player moving
+    public float forceIncreaseRate = 100f; // Force increase per second
+
+    [SerializeField]
+    float forceApplicationMagnitude = 500f; // Magnitude of force to apply
+
+    [SerializeField]
+    private float frontAngleThreshold = 60f; // Angle threshold to consider "front" collision
+
+    [SerializeField]
+    private float minMovementThreshold = 0.1f; // Minimum movement to consider player moving
 
     [Header("Object Shake Settings")]
-    [SerializeField] private float objectShakeMagnitude = 0.02f; // Shake intensity for collided objects
-    [SerializeField] private float objectShakeSpeed = 30f; // Speed of shake animation for objects
-    [SerializeField] private bool enableObjectShake = true; // Toggle for object shaking
+    [SerializeField]
+    private float objectShakeMagnitude = 0.02f; // Shake intensity for collided objects
+
+    [SerializeField]
+    private float objectShakeSpeed = 30f; // Speed of shake animation for objects
+
+    [SerializeField]
+    private bool enableObjectShake = true; // Toggle for object shaking
 
     [Header("Debug Settings")]
-    [SerializeField] private bool debugForceBuildup = true;
-    [SerializeField] private bool showDebugGizmos = true;
+    [SerializeField]
+    private bool debugForceBuildup = true;
+
+    [SerializeField]
+    private bool showDebugGizmos = true;
 
     // Current force value that builds up over time
     private float forceValue = 0f;
@@ -64,8 +78,10 @@ public class DrillForceBuildup : MonoBehaviour
         playerVibrator = GetComponent<VibratePlayer>();
         if (playerVibrator == null)
         {
-            Debug.LogWarning("[ForceBuildup] VibratePlayer component not found. " +
-                             "Shake and vibration functionality will be disabled.");
+            Debug.LogWarning(
+                "[ForceBuildup] VibratePlayer component not found. "
+                    + "Shake and vibration functionality will be disabled."
+            );
         }
 
         // FIXED: Set all destructible objects to drilling-only mode at start
@@ -75,7 +91,9 @@ public class DrillForceBuildup : MonoBehaviour
     // FIXED: Ensure all destructible objects use drilling system
     void SetAllDestructiblesToDrillingMode()
     {
-        UnfreezeChilds[] allDestructibles = FindObjectsByType<UnfreezeChilds>(FindObjectsSortMode.None);
+        UnfreezeChilds[] allDestructibles = FindObjectsByType<UnfreezeChilds>(
+            FindObjectsSortMode.None
+        );
         foreach (UnfreezeChilds destructible in allDestructibles)
         {
             destructible.SetDrillingOnlyMode(true);
@@ -83,7 +101,9 @@ public class DrillForceBuildup : MonoBehaviour
 
         if (debugForceBuildup)
         {
-            Debug.Log($"[ForceBuildup] Set {allDestructibles.Length} destructible objects to drilling-only mode");
+            Debug.Log(
+                $"[ForceBuildup] Set {allDestructibles.Length} destructible objects to drilling-only mode"
+            );
         }
     }
 
@@ -137,7 +157,9 @@ public class DrillForceBuildup : MonoBehaviour
             {
                 if (debugForceBuildup)
                 {
-                    Debug.Log($"[ForceBuildup] Target {currentTargetObject.name} has been fractured. Clearing collision state.");
+                    Debug.Log(
+                        $"[ForceBuildup] Target {currentTargetObject.name} has been fractured. Clearing collision state."
+                    );
                 }
                 ClearCollisionState();
             }
@@ -146,7 +168,9 @@ public class DrillForceBuildup : MonoBehaviour
             {
                 if (debugForceBuildup)
                 {
-                    Debug.Log("[ForceBuildup] Target object has been destroyed. Clearing collision state.");
+                    Debug.Log(
+                        "[ForceBuildup] Target object has been destroyed. Clearing collision state."
+                    );
                 }
                 ClearCollisionState();
             }
@@ -195,7 +219,9 @@ public class DrillForceBuildup : MonoBehaviour
 
             if (debugForceBuildup)
             {
-                Debug.Log($"[ForceBuildup] Building force: {forceValue:F1} (Target: {GetTargetMinimumForce():F1})");
+                Debug.Log(
+                    $"[ForceBuildup] Building force: {forceValue:F1} (Target: {GetTargetMinimumForce():F1})"
+                );
             }
 
             // Check if we've reached the threshold
@@ -247,7 +273,9 @@ public class DrillForceBuildup : MonoBehaviour
 
         if (debugForceBuildup && Time.frameCount % 30 == 0) // Log every 30 frames to avoid spam
         {
-            Debug.Log($"[ForceBuildup] Movement alignment: {movementAlignment:F2} (Threshold: 0.5)");
+            Debug.Log(
+                $"[ForceBuildup] Movement alignment: {movementAlignment:F2} (Threshold: 0.5)"
+            );
         }
 
         // Player must be moving towards the collision (alignment > 0.5 means roughly forward)
@@ -293,12 +321,16 @@ public class DrillForceBuildup : MonoBehaviour
         }
 
         // Calculate force direction (from player toward object)
-        Vector3 forceDirection = (currentTargetObject.transform.position - transform.position).normalized;
+        Vector3 forceDirection = (
+            currentTargetObject.transform.position - transform.position
+        ).normalized;
         Vector3 forceVector = forceDirection * forceApplicationMagnitude;
 
         if (debugForceBuildup)
         {
-            Debug.Log($"[ForceBuildup] Applying force {forceApplicationMagnitude} to {currentTargetObject.name}");
+            Debug.Log(
+                $"[ForceBuildup] Applying force {forceApplicationMagnitude} to {currentTargetObject.name}"
+            );
             Debug.Log($"[ForceBuildup] Force direction: {forceDirection}");
         }
 
@@ -309,7 +341,9 @@ public class DrillForceBuildup : MonoBehaviour
 
             if (debugForceBuildup)
             {
-                Debug.Log($"[ForceBuildup] Force applied to rigidbody on {targetRigidbody.gameObject.name}");
+                Debug.Log(
+                    $"[ForceBuildup] Force applied to rigidbody on {targetRigidbody.gameObject.name}"
+                );
             }
         }
 
@@ -385,11 +419,14 @@ public class DrillForceBuildup : MonoBehaviour
             }
 
             // Calculate a random offset for the shake using Perlin noise
-            Vector3 randomOffset = new Vector3(
-                Mathf.PerlinNoise(Time.time * objectShakeSpeed, 0) * 2 - 1,
-                Mathf.PerlinNoise(0, Time.time * objectShakeSpeed) * 2 - 1,
-                Mathf.PerlinNoise(Time.time * objectShakeSpeed, Time.time * objectShakeSpeed) * 2 - 1
-            ) * objectShakeMagnitude;
+            Vector3 randomOffset =
+                new Vector3(
+                    Mathf.PerlinNoise(Time.time * objectShakeSpeed, 0) * 2 - 1,
+                    Mathf.PerlinNoise(0, Time.time * objectShakeSpeed) * 2 - 1,
+                    Mathf.PerlinNoise(Time.time * objectShakeSpeed, Time.time * objectShakeSpeed)
+                        * 2
+                        - 1
+                ) * objectShakeMagnitude;
 
             currentTargetTransform.localPosition = targetInitialPosition + randomOffset;
             yield return null;
@@ -426,7 +463,9 @@ public class DrillForceBuildup : MonoBehaviour
         {
             if (debugForceBuildup)
             {
-                Debug.Log($"[ForceBuildup] Exited collision with target: {collision.gameObject.name}");
+                Debug.Log(
+                    $"[ForceBuildup] Exited collision with target: {collision.gameObject.name}"
+                );
             }
 
             // FIXED: Use the centralized method to clear state
@@ -487,8 +526,10 @@ public class DrillForceBuildup : MonoBehaviour
 
             if (debugForceBuildup && Time.frameCount % 30 == 0) // Reduce spam
             {
-                Debug.Log($"[ForceBuildup] Valid front collision with {collision.gameObject.name} " +
-                         $"(Angle: {angle:F1}°, Min Force Required: {unfreezeScript.MinimumCollisionForce:F1})");
+                Debug.Log(
+                    $"[ForceBuildup] Valid front collision with {collision.gameObject.name} "
+                        + $"(Angle: {angle:F1}ï¿½, Min Force Required: {unfreezeScript.MinimumCollisionForce:F1})"
+                );
             }
         }
     }
@@ -550,8 +591,15 @@ public class DrillForceBuildup : MonoBehaviour
         // Draw force buildup indicator
         if (isInValidCollision && forceValue > 0f)
         {
-            Gizmos.color = Color.Lerp(Color.yellow, Color.red, forceValue / GetTargetMinimumForce());
-            Gizmos.DrawWireSphere(transform.position + Vector3.up * 3f, 0.3f + (forceValue / GetTargetMinimumForce()) * 0.7f);
+            Gizmos.color = Color.Lerp(
+                Color.yellow,
+                Color.red,
+                forceValue / GetTargetMinimumForce()
+            );
+            Gizmos.DrawWireSphere(
+                transform.position + Vector3.up * 3f,
+                0.3f + (forceValue / GetTargetMinimumForce()) * 0.7f
+            );
         }
 
         // Draw collision direction
@@ -572,8 +620,10 @@ public class DrillForceBuildup : MonoBehaviour
             Vector3 movementDir = new Vector3(-joystickInput.y, 0f, joystickInput.x).normalized;
 
             Gizmos.color = Color.green;
-            Gizmos.DrawLine(transform.position + Vector3.up * 0.5f,
-                           transform.position + Vector3.up * 0.5f + movementDir * 2f);
+            Gizmos.DrawLine(
+                transform.position + Vector3.up * 0.5f,
+                transform.position + Vector3.up * 0.5f + movementDir * 2f
+            );
         }
 
         // Indicate if target is shaking

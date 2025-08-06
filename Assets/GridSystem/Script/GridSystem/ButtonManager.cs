@@ -9,10 +9,6 @@ public class ButtonManager : MonoBehaviour
         SceneManager.LoadScene(sceneToLoad);
     }
 
-    public void FindSource()
-    {
-        SoundManager.instance.FindAllAudioSources();
-    }
 
     // Bu metot, oyunu kapatır
     public void QuitGame()
